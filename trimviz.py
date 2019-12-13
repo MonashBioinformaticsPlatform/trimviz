@@ -149,16 +149,24 @@ def main():
     softClipping=False
     if not os.path.isfile(proc_FN1):
         if (len(proc_FN1) > 0):
-            exit('Could not find processed R1 file ' + proc_FN1 + '. Exiting.')
+            print('Could not find processed R1 file ' + proc_FN1 + '. Exiting.')
+            print_help()
+            exit()
         if not os.path.isfile(bam_FN ):
-            exit('No processed R1 file given; and no valid bam filename was given in lieu. Exiting.')
+            print('No processed R1 file given; and no valid bam filename was given in lieu. Exiting.')
+            print_help()
+            exit()
         else:
             print ('Bam file given but not processed fastq file. Will treat soft-clipping in bam file as the trimming to analyze.')
             softClipping=True
-    if not os.path.isfile(orig_FN1):
-        exit('Could not find file: ' + orig_FN1 + '. Exiting.')
+    if not os.path.isfile(orig_FN1): 
+        print('Could not find file: ' + orig_FN1 + '. Exiting.')
+        print_help()
+        exit()
     if not os.path.isfile(adapt_FN) and len(adapt_FN) > 0:
-        exit('Could not find file: ' + adaptfile + '. Exiting.') 
+        print('Could not find file: ' + adaptfile + '. Exiting.')
+        print_help()
+        exit()
         
     random.seed(rseed)
 
@@ -640,14 +648,23 @@ def print_help ():
     trimviz takes a random sample of trimmed reads from a fastq file,
     looks up the same reads in an untrimmed fastq file and visualises the
     trimmed reads with respect to surrounding base call quality values and
-    adapter sequence.
+    adapter sequence. If a bam file is provided AND the processed fastq
+    file (-p) is ommitted, trimviz will instead visualize the soft-clipping
+    of reads by the aligner.
     
     Usage:
-    ./trimsvis.py -o orig.fq.gz -p processed.fq.gz
-    
+    ./trimsvis.py -o orig.fq.gz -x plotfiles_prefix [ -p processed.fq.gz | -b align.bam -g reference.fa ]
     options:
-    -a/--adapt:('AAAAAATGGAATTCTCGGGTGCCAAGGAACTCCAGTCACCGTTCAGAGTTCTACAGTCCGACGATC')
-    -h/--help:      print help
+    -a/--adapt:           ['AAAAAATGGAATTCTCGGGTGCCAAGGAACTCCAGTCACCGTTCAGAGTTCTACAGTCCGACGATC'] comma-separated adapter sequences to highlight
+    -A/--adaptfile        text file containing adapter sequences
+    -h/--help:            print help
+    -g/--genome_fasta     fasta file of genome sequence (required if using .bam alignment)
+    -m/--maxNaggplot      [200]
+    -v/--nvis             [20]
+    -r/--rid_file         file of read-ids to select, instead of using random sampling
+    -x/--plotfiles_prefix prefix of output pdf file (individual read visualization)
+    -e/--aggPlot          prefix of output pdf file (clustered read heatmaps)
+    -n/sample_size        [50000] internal parameter: max reads to subsample in file (should be >> -m and -v, especially if only a small proportion are trimmed)
      
     Requires:
     Rscript
