@@ -14,7 +14,7 @@ if (length(args) != 4){
 }
 #setwd(args[3])
 aggFN = args[3]
-maxAggN = args[4]
+maxAggN = as.integer(args[4])
 df <- read.table(file = args[1], comment.char = '', header=TRUE)
 #df <- read.table(file = './trimVisTmpFiles/trimviz_readData.tsv', comment.char = '', header=TRUE)
 graphchunk = 5

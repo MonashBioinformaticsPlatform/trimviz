@@ -70,7 +70,7 @@ def main():
     rseed = 1           # s
     madapt=list()       # a   ...(madapt[0])
     adapt_FN = str('')  # A
-    gr_FN = str('')     # x  
+    gr_FN = str('indivReadPlots.pdf')     # x  
     tblOut_FN = str('') # d
     gfasta_FN = str('') # g
     gtf_FN = str('')    # t
@@ -501,7 +501,7 @@ def main():
             rs = random.sample(ids, k=min( len(ids) , nvis ))
             toPlot = toPlot + rs
     else:
-        toPlot = random.sample(keys(both), nvis)
+        toPlot = random.sample(both.keys(), nvis)
     
 
     
@@ -659,8 +659,8 @@ def print_help ():
     -A/--adaptfile        text file containing adapter sequences
     -h/--help:            print help
     -g/--genome_fasta     fasta file of genome sequence (required if using .bam alignment)
-    -m/--maxNaggplot      [200]
-    -v/--nvis             [20]
+    -m/--maxNaggplot      [200] number of reads to add to heatmap plots
+    -v/--nvis             [20] number of reads in each category to individually visualize
     -r/--rid_file         file of read-ids to select, instead of using random sampling
     -x/--plotfiles_prefix prefix of output pdf file (individual read visualization)
     -e/--aggPlot          prefix of output pdf file (clustered read heatmaps)
