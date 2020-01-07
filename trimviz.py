@@ -499,11 +499,12 @@ def main():
                 #if r in lookupCls:
                 #    print "warning: read %s is in multiple classes: %s and %s " % (r, lookupCls[r], cls)
                 lookupCls[r]=cls
-            print ("There were %d reads classed as %s") % (len(rid_class[cls]) , cls)
             rs = random.sample(ids, k=min( len(ids) , nvis ))
             toPlot = toPlot + rs
     else:
         toPlot = random.sample(both.keys(), nvis)
+    for cls in rid_class.keys():
+        print ("There were %d reads classed as %s") % (len(rid_class[cls]) , cls)
     
 
     
