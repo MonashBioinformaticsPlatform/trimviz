@@ -20,6 +20,10 @@ df <- read.table(file = args[1], comment.char = '', header=TRUE)
 graphchunk = 5
 rnames = unique(df$read)
 maxLen =  max( df$position )
+if (ncol(df) == 6){
+  df$dummy_adapter=0
+}
+  
 for (col in (7:ncol(df))){
   df[df[,col]==0,col] = NA  # set 0 to NA to colour black
 }
