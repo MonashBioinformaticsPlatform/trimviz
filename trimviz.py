@@ -145,7 +145,9 @@ def main():
     ###########################################################################################
     #  MAIN part 1:  arguments logic
     ###########################################################################################
-    
+    if not cmd_exists('seqtk'):
+        print(' *** Could not find seqtk executable. Please install seqtk. Exiting. ***')
+        exit()
     softClipping=False
     if not os.path.isfile(proc_FN1):
         if (len(proc_FN1) > 0):
@@ -582,8 +584,14 @@ def main():
     print "R stdout:", rout
         
    
-# <<<<<<<<<<<<<<<<< END MAIN >>>>>>>>>>>>>>>>>>>     
- 
+# <<<<<<<<<<<<<<<<< END MAIN >>>>>>>>>>>>>>>>>>>
+
+def cmd_exists(cmd):
+    return any(
+        os.access(os.path.join(path, cmd), os.X_OK) 
+        for path in os.environ["PATH"].split(os.pathsep)
+    )
+
 def mfind (text, query):
     i=0
     idxs=list()
