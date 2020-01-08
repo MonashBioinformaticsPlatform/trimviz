@@ -77,7 +77,16 @@ for (i in 1:as.integer(length(rnames)/graphchunk)){
 dev.off()
 
 
-df2 <- read.table('./trimVisTmpFiles/seq3psites.txt', header = T)
+df2 <- read.table('./trimVisTmpFiles/seq3psites.txt', header = T, colClasses = 'character') # columns of Ts can be interpreted as logical
+colConvert=data.frame(pattern=c('^readID$', 'CutPos', '^[gs][\\d]+$','^q[\\d]+$'), fun=1:4)
+colConvert$fun=c(as.character, as.integer, function(x){factor(x, levels=c('A', 'C','G','T','X','N'))}, as.integer)
+for (rw in 1:nrow(colConvert)){
+	  pattern = colConvert$pattern[rw]
+  scols = which(grepl(pattern=pattern, colnames(df2), perl=T))
+    for (scol in scols){
+	        df2[,scol] = colConvert$fun[rw][[1]](df2[,scol])
+    }
+}
 if (nrow(df2) == 0){
   stop("No reads in trimmed-class dataset for making aggregate trim plots. Perhaps there are no trimmed reads in the data?")
 }
