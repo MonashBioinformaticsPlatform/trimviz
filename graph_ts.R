@@ -90,6 +90,9 @@ for (rw in 1:nrow(colConvert)){
 if (nrow(df2) == 0){
   stop("No reads in trimmed-class dataset for making aggregate trim plots. Perhaps there are no trimmed reads in the data?")
 }
+print('quantiles of clipped read lengths in sample:')
+print(quantile(df2$tpCutPos, (0:10)/10))
+
 subSampN=min(maxAggN, nrow(df2))
 df2 = df2[sample(1:subSampN, replace = F),]
 
