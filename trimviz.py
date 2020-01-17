@@ -35,109 +35,113 @@ class dummy_fastq:
 
     
 def main():
-    options, remainder = getopt.getopt(sys.argv[1:], 'o:p:O:P:B:c:n:v:s:a:A:x:d:g:t:r:bzhf:e:m:w', ['original=',
-                                                                                   'processed=',
-                                                                                   'originalR2=',
-                                                                                   'processedR2=',
-                                                                                   'bam_file=',
-                                                                                   'classes=',   # cut,uncut,removed
-                                                                                   'sample_size=', 
-                                                                                   'nvis=',
-                                                                                   'seed=',
-                                                                                   'adapt=',
-                                                                                   'adaptfile=',
-                                                                                   'plotfiles_prefix=',
-                                                                                   'data_out_file=',
+    if len(sys.argv) < 2 or not sys.argv[1] in {'FQ','SC'}:
+        print('Error: please specify either fastq-fastq mode (FQ) or soft-clipping analysis mode (SC)')
+        print_help()
+        exit()
+    if sys.argv[1] == 'FQ':
+        softClipping = False
+    else:
+        softClipping = True
+        
+    options, remainder = getopt.getopt(sys.argv[2:], 'u:t:U:T:o:O:b:g:c:n:v:w:a:A:f:g:r:s:Rzeh', ['untrimmed=',
+                                                                                   'trimmed=',
+                                                                                   'untrimmed_r2=',
+                                                                                   'trimmed_r2=',
+                                                                                   'out_dir=',
+                                                                                   'out_dir_all=',
+                                                                                   'bam=',
                                                                                    'genome_fasta=',
-                                                                                   'genome_gtf=',
+                                                                                   'classes=',
+                                                                                   'sample_size=', 
+                                                                                   'indiv_reads=',
+                                                                                   'heatmap_reads=',
+                                                                                   'adapt=',
+                                                                                   'adapt_file=',
+                                                                                   'agg_flank='
                                                                                    'rid_file='
-                                                                                   'balance_classes',
+                                                                                   'seed=',
+                                                                                   'representative',
                                                                                    'gzipped',
-                                                                                   'help',
-                                                                                   'aggflank=',
-                                                                                   'aggPlot=',
-                                                                                   'maxNaggplot=',
-                                                                                   'read2only'])
-    # set defaults
-    orig_FN1 = str('')  # o
-    proc_FN1 = str('')  # p
-    orig_FN2 = str('')  # O
-    proc_FN2 = str('')  # P
-    bam_FN = str('')    # B
-    coi=list()          # c
-    target_n_pre=50000  # n 
-    nvis=20             # v
-    rseed = 1           # s
-    madapt=list()       # a   ...(madapt[0])
-    adapt_FN = str('')  # A
-    gr_FN = str('indivReadPlots.pdf')     # x  
-    tblOut_FN = str('') # d
-    gfasta_FN = str('') # g
-    gtf_FN = str('')    # t
-    rid_FN = str('')    # r
-    balance = True      # b
-    gzipped = True      # z
-    nfirstpass = 4000   # ?   ... TODO add to args
+                                                                                   'read2only',
+                                                                                   'help'])
+
+    gr_FN = 'indivReadPlots.pdf'
+    aggGr_FN = 'aggPlot.pdf'
+    tblOut_FN = 'trimVisData.tsv'
     class_opts = ['uncut','5pcut','3pcut','removed']  # codify as 0,1 and 2
-    coi=['all']
-    aggFlank=20         # f
-    aggGr_FN = 'aggPlot.pdf' # e
-    maxAggN = 200       # m
-    read2only=False     #w
+    
+    # set defaults
+    orig_FN1 = str('')  # u   'untrimmed='
+    proc_FN1 = str('')  # t   'trimmed='
+    orig_FN2 = str('')  # U   'untrimmed_r2='
+    proc_FN2 = str('')  # T   'trimmed_r2='
+    out_DN = str('')    # o|O 'out_dir='
+    keepTmp = False     # O                # <------- TODO make use of this parameter
+    bam_FN = str('')    # b   'bam='
+    gfasta_FN = str('') # g   'genome_fasta='
+    coi_raw = ['all']   # c   'classes='
+    target_n_pre=50000  # n   'sample_size='
+    nvis=20             # v   'indiv_reads='  # if -R is not set, will aim to visualize this many reads from each individual trimming-class
+    maxAggN = 200       # w   'heatmap_reads='
+    aggFlank=20         # f   'agg_flank=
+    madapt=list()       # a   'adapt='...(madapt[0]) # <------- TODO make use of additional adapters (1 only currently)
+    adapt_FN = str('')  # A   'adapt_file='  # <------- TODO make use of this parameter
+    rid_FN = str('')    # r   'rid_file='
+    rseed = 1           # s   'seed='
+    balance = True      # R   'representative'
+    gzipped = True      # z   'gzipped'
+    read2only = False   # e   'read2only'   # <------- TODO paired-end mode
+    help = False        # h   'help'
     
     for opt, arg in options:
-        if opt in ('-o', '--original'):
+        if opt in ('-u', '--untrimmed'):
             orig_FN1 = arg
-        elif opt in ('-p', '--processed'):
+        elif opt in ('-t', '--trimmed'):
             proc_FN1 = arg
-        elif opt in ('-O', '--originalR2'):
+        elif opt in ('-U', '--untrimmed_r2'):
             orig_FN2 = arg
-        elif opt in ('-P', '--processedR2'):
+        elif opt in ('-T', '--trimmed_r2'):
             proc_FN2 = arg
-        elif opt in ('-c', '--classes'):
-            coi_raw = arg.split(',')
-            coi = [x for x in coi_raw if x in class_opts]
-            if len(coi) < len (coi_raw) and coi_raw != ['all']:
-                print ("Warning, values given in -c should include only 'uncut', 'cut' and/or 'removed', comma-separated; or 'all'")
-        elif opt in ('-n', 'sample_size'):
-            target_n_pre = int(arg)
-        elif opt in ('-v', '--nvis'):
-            nvis = int(arg)
-        elif opt in ('-s', '--seed'):
-            rseed = int(arg)
-        elif opt in ('-a', '--adapt'):
-            madapt = arg.split(',')
-        elif opt in ('-A', '--adaptfile'):
-            adapt_FN = arg
-        elif opt in ('-x', '--plotfiles_prefix'):
-            gr_FN = arg
-        elif opt in ('-d', '--data_out_file'):
-            tblOut_FN = arg
-        elif opt in ('-B', '--bam_file'):
+        elif opt in ('-o', '--out_dir'):
+            out_DN = arg
+        elif opt in ('-O', '--out_dir_all'):
+            out_DN = arg
+            keepTmp = True
+        elif opt in ('-b', '--bam'):
             bam_FN = arg
         elif opt in ('-g', '--genome_fasta'):
             gfasta_FN = arg # g
-        elif opt in ('-t', '--genome_gtf'):
-            gtf_FN = str('')    # t
-        elif opt in ('-r', '--rid_file'):
+        elif opt in ('-c', '--classes'):
+            coi_raw = arg.split(',')
+        elif opt in ('-n', 'sample_size'): # should be large enough to be able to get a balanced set of read-trim classes
+            target_n_pre = int(arg)
+        elif opt in ('-v', '--indiv_reads'):  # number of individual reads to visualize 1-by-1
+            nvis = int(arg)
+        elif opt in ('-w', '--heatmap_reads'): # number of reads to visualize in heatmaps
+            maxAggN = int(arg)
+        elif opt in ('-f',  '--agg_flank'):
+            aggFlank = int(arg)    
+        elif opt in ('-a', '--adapt'):
+            madapt = arg.split(',')
+        elif opt in ('-A', '--adapt_file'):
+            adapt_FN = arg     # 
+        elif opt in ('-r', '--read_id_file'):
             rid_FN = arg    # t
-        elif opt in ('-b', '--balance_classes_for_plot'):
-            balance = True
+        elif opt in ('-s', '--seed'):
+            rseed = int(arg)
+        elif opt in ('-R', '--representative'):
+            balance = False
         elif opt in ('-z', '--gzipped'):
             gzipped = True
+        elif opt in ('-w', '--read2only'):
+            read2only=True
         elif opt in ('-h', '--help'):
             print_help()
-        elif opt in ('-f', '--aggflank'):
-            aggFlank = int(arg)
-        elif opt in ('-e', '--aggPlot'):
-            aggGr_FN=arg
-        elif opt in ('-m', '--maxNaggplot'):
-            maxAggN = int(arg)
-        elif opt in ('-w', '--read2only'):
-            read2only=True    
+            
     # Open a file.  Use gzip based on filename, or 'gzipped' flag
     def gzopen(fname):
-        if gzipped or fname.endswith('gz'):
+        if gzipped or fname.endswith('.gz'):
             return gzip.open(fname, 'rb')
         else:
             return open(fname, 'r')
@@ -145,26 +149,60 @@ def main():
     ###########################################################################################
     #  MAIN part 1:  arguments logic
     ###########################################################################################
+    coi = [x for x in coi_raw if x in class_opts]
+    if len(coi) < len (coi_raw) and coi_raw != ['all']:
+        print ("Warning, values given in -c should include only 'uncut','5pcut','3pcut', and/or 'removed', comma-separated; or just -c 'all'")
     if not cmd_exists('seqtk'):
         print(' *** Could not find seqtk executable. Please install seqtk. Exiting. ***')
         exit()
-    softClipping=False
-    if not os.path.isfile(proc_FN1):
-        if (len(proc_FN1) > 0):
-            print('Could not find processed R1 file ' + proc_FN1 + '. Exiting.')
-            print_help()
-            exit()
-        if not os.path.isfile(bam_FN ):
-            print('No processed R1 file given; and no valid bam filename was given in lieu. Exiting.')
-            print_help()
-            exit()
-        else:
-            print ('Bam file given but not processed fastq file. Will treat soft-clipping in bam file as the trimming to analyze.')
-            softClipping=True
-    if not os.path.isfile(orig_FN1): 
-        print('Could not find file: ' + orig_FN1 + '. Exiting.')
+    if out_DN == '':
+        print('Error: output directory required.')
         print_help()
         exit()
+    if os.path.exists(out_DN):
+        print('Error: output directory already exists. Exiting.')
+        exit()
+    try:
+        os.makedirs(out_DN)
+    except:
+        print('Error: Could not create output directory %s. Exiting.') % (out_DN)
+        exit()   
+    
+    if not os.path.isfile(orig_FN1):
+        if len(orig_FN1) > 0:
+            print('Could not find input fastq file: ' + orig_FN1 + '. Exiting.')
+        else:
+            print orig_FN1
+            print ('No untrimmed R1 file given (required). Exiting.')
+            print_help()
+        exit()
+    if softClipping:
+        if not os.path.isfile(bam_FN):
+            if len(bam_FN) > 0:
+                print('Could not find bam file ' + bam_FN + '. Exiting.')
+            else:
+                print('No bam filename was given (required in SC mode). Exiting.')
+                print_help()
+            exit()
+        if not (proc_FN1=='' and proc_FN2==''):
+            print ("Warning, -t and -T options not used in SC mode. Ignoring.")  
+    else:   
+        if not os.path.isfile(proc_FN1):
+            if len(proc_FN1) > 0:
+                print('Could not find trimmed R1 fastq file ' + proc_FN1 + '. Exiting.')
+            else:
+                print ('No trimmed R1 file given, but this is required in FQ mode. Exiting.')
+                print_help()
+            exit()
+
+    if os.path.isfile(bam_FN) and not os.path.isfile(gfasta_FN):
+        if gfasta_FN == '':
+            print ('Bam file is given but could not corresponding genome fasta. Exiting.')
+        else:
+            print ('Bam file is given but could not find corresponding genome fasta file '+ gfasta_FN + '. Exiting.')
+        print_help()
+        exit()
+        
     if not os.path.isfile(adapt_FN) and len(adapt_FN) > 0:
         print('Could not find file: ' + adaptfile + '. Exiting.')
         print_help()
@@ -183,7 +221,8 @@ def main():
         else:
             sys.stderr.write('Error: A Read-2 filename was given, but could not locate both Read-2 files (or a bam file).\n')
             quit()
-            
+            # <---------- TODO: paried-end mode
+
     if len(adapt_FN)>0:
         if os.path.exists(adapt_FN) and os.path.isfile(adapt_FN):
             with open (adapt_FN, 'r') as fin:
@@ -195,14 +234,14 @@ def main():
     
     ###########################################################################################
     #  MAIN part 2:     sample from pre- processed fastq file
-    ###########################################################################################
-    if not os.path.exists('trimVisTmpFiles'):
-        os.makedirs('trimVisTmpFiles') 
-    tmpPre1_FN = os.curdir+'/trimVisTmpFiles/tmpPre1.fq.gz'
-    tmpPost1_FN = os.curdir+'/trimVisTmpFiles/tmpPost1.fq.gz'
-    tmpPre2_FN = os.curdir+'/trimVisTmpFiles/tmpPre2.fq.gz'
-    tmpPost2_FN = os.curdir+'/trimVisTmpFiles/tmpPost2.fq.gz'
-    readIDs1_FN = os.curdir+'/trimVisTmpFiles/readIDsPre.lst'
+    ###########################################################################################     
+    if not os.path.exists(out_DN +'/trimVisTmpFiles'):
+        os.makedirs(out_DN +'/trimVisTmpFiles') 
+    tmpPre1_FN = out_DN + '/trimVisTmpFiles/tmpPre1.fq.gz'
+    tmpPost1_FN = out_DN + '/trimVisTmpFiles/tmpPost1.fq.gz'
+    tmpPre2_FN = out_DN + '/trimVisTmpFiles/tmpPre2.fq.gz'
+    tmpPost2_FN = out_DN + '/trimVisTmpFiles/tmpPost2.fq.gz'
+    readIDs1_FN = out_DN + '/trimVisTmpFiles/readIDsPre.lst'
     
     # sample original fq:
     if rid_FN == '':
@@ -491,7 +530,7 @@ def main():
 
    # sub-select balanced proportions of uncut, cut, removed for plotting
     lookupCls = dict()
-    if (balance and coi != ['all']):
+    if (balance and coi_raw != ['all']):
         toPlot=[]
         for cls in coi:
             ids = rid_class[cls]
@@ -503,9 +542,13 @@ def main():
             toPlot = toPlot + rs
     else:
         toPlot = random.sample(both.keys(), nvis)
+    print ("Trim-classification results from the random sample of %d reads") % (target_n_pre)
     for cls in rid_class.keys():
-        print ("There were %d reads classed as %s") % (len(rid_class[cls]) , cls)
-    
+        ncls = len(rid_class[cls])
+        if balance and ncls < nvis:
+            print ("There were %d reads classed as %s. (Warning: this was less than requested for plotting (-v). Increase sample size using -n)") % (ncls , cls)
+        else:
+            print ("There were %d reads classed as %s.") % (ncls , cls)
 
     
     #with tempfile.NamedTemporaryFile(delete = False) as tempf:
@@ -577,8 +620,8 @@ def main():
     ###########################
     # << CALL R SCRIPT HERE >>#
     ###########################
-    
-    cmd6 = 'Rscript ' +'./graph_ts.R '+ tempfname + ' ' + gr_FN + ' ' + aggGr_FN + ' ' + str(maxAggN)  #os.curdir
+
+    cmd6 = 'Rscript ' +'./graph_ts.R '+ tempfname + ' ' + out_DN + '/' + gr_FN + ' ' + out_DN +'/' + aggGr_FN + ' ' + str(maxAggN)  #os.curdir
     print (cmd6)
     rout = subprocess.check_output(cmd6, shell=True)
     
@@ -657,23 +700,40 @@ def print_help ():
     trimviz takes a random sample of trimmed reads from a fastq file,
     looks up the same reads in an untrimmed fastq file and visualises the
     trimmed reads with respect to surrounding base call quality values and
-    adapter sequence. If a bam file is provided AND the processed fastq
-    file (-p) is ommitted, trimviz will instead visualize the soft-clipping
-    of reads by the aligner.
+    adapter sequence. In soft-clipping mode, trimviz will instead
+    visualize the soft-clipping of reads by an aligner.
     
     Usage:
-    ./trimsvis.py -o orig.fq.gz -x plotfiles_prefix [ -p processed.fq.gz | -b align.bam -g reference.fa ]
+    ./trimsvis.py FQ -o/-O output_dir -u untrimmed.fq.gz -t trimmed.fq.gz [ -b align.bam -g reference.fa ]
+    ./trimsvis.py SC -o/-O output_dir -u unaligned.fq.gz -b align.bam -g reference.fa
+    
+    trimsvis.py FQ        Fastq-fastq comparison. Bam file and genome fasta file can be optionally given to view the mapping outcomes for trimmed reads.
+    trimsvis.py SC        Treat soft clipping as the trimming of interest. Bam and genome fasta file are required, with only one fastq file.
+    
     options:
+    -o/--out_dir          Directory for output. If it already exists, an error will be generated.
+    -O/--out_dir_fat      Directory for output (retain temporary files; choose this option to keep the sub-sampled fastq files)
+    -u/--untrimmed        Untrimmed (original) fastq file name. In SC mode, this should be the fastq file that was directly input into the aligner.
+    -t/--trimmed          Trimmed fastq file name
+    -U/--untrimmed_r2     Read2 fastq file corresponding to -u file (not implemented yet)
+    -T/--trimmed_r2       Read2 fastq file corresponding to -t file (not implemented yet)
+    -b/--bam              Bam file (optional in FQ mode; required in SC mode). Only R1 alignments will be extracted (or only R2 if -e is set).
+    -g/--genome_fasta     Fasta file of genome sequence (required if using .bam alignment)
+    -c/--classes          ['all'] Which trim-classes to analyse. Either 'all' or one/several of 'uncut','5pcut','3pcut','removed'
     -a/--adapt:           ['AAAAAATGGAATTCTCGGGTGCCAAGGAACTCCAGTCACCGTTCAGAGTTCTACAGTCCGACGATC'] comma-separated adapter sequences to highlight
-    -A/--adaptfile        text file containing adapter sequences
-    -h/--help:            print help
-    -g/--genome_fasta     fasta file of genome sequence (required if using .bam alignment)
-    -m/--maxNaggplot      [200] number of reads to add to heatmap plots
-    -v/--nvis             [20] number of reads in each category to individually visualize
-    -r/--rid_file         file of read-ids to select, instead of using random sampling
-    -x/--plotfiles_prefix prefix of output pdf file (individual read visualization)
-    -e/--aggPlot          prefix of output pdf file (clustered read heatmaps)
-    -n/sample_size        [50000] internal parameter: max reads to subsample in file (should be >> -m and -v, especially if only a small proportion are trimmed)
+    -A/--adaptfile        Text file containing adapter sequences
+    -n/--sample_size      [50000] internal parameter: max reads to subsample in file (should be >> -m and -v, especially if only a small proportion are trimmed)
+    -v/--nvis             [20] number of reads in each category (or in total if -R is set) to use for detailed individual plots
+    -w/--heatmap_reads    [200] number of reads to plot in heatmaps
+    -f/--agg_flank        [20] number of flanking nucleotides around trim point to plot in heatmaps 
+    -r/--rid_file         File of read-ids to select, instead of using random sampling
+    -s/--rseed            [1] random seed for sampling
+    
+    flags:
+    -R/--representative   Ignore read-classes and take a representative sample. (This often results in untrimmed reads dominating the visualization)
+    -z/--gzipped          Assume fastq files are gzipped (default behaviour is to guess via .gz file extension)
+    -e/--read2only        If set, only alignments with the 'read-2' flag will be extracted from the .bam file (default: only read-1 is extracted)
+    -h/--help:            Print help
      
     Requires:
     Rscript
@@ -687,4 +747,3 @@ def print_help ():
 
 if __name__ == "__main__":
     main()
-    
