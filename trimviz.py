@@ -602,7 +602,7 @@ def main():
             for r in rid_class[cls]:
                     rdat=both[r]
                     ps=padstr(rdat[2], rdat[5]-1, aggFlank, r)  # pre-seq; 3' trim site (0-based so should not exceed len(rdat[2]) ); flanking seq = 20. returns list
-                    pq=padstr(rdat[3], rdat[5]-1, aggFlank, r)
+                    pq=padstr(rdat[3], rdat[5]-1, aggFlank, r)  # pad quals with 'N's which are not legit qual characters (highest is 'J')
                     if bam_FN != '':                      
                         if r in bamInfo:
                             gSeq=bamInfo[r][0]
@@ -611,7 +611,7 @@ def main():
                         gs=padstr(gSeq, rdat[5]-1, aggFlank, r)
                         print >> fout, '\t'.join([r, str(rdat[5])] + ps + [str(ord(x)) for x in pq] + gs)
                     else:
-                        print >> fout, '\t'.join([r, str(rdat[5])] + ps + [str(ord(x)) for x in pq])
+                        print >> fout, '\t'.join([r, str(rdat[5])] + ps + [str(ord(x)) for x in pq])  # N's -> 78. Highest legit q-val is 'J' (-> 74)
                     
  
         

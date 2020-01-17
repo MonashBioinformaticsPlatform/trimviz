@@ -116,19 +116,19 @@ for (prefix in c('s','q','g')){
     }
     hc = hclust(d)
     slong = melt(data = smat)
-    colnames(slong)=c('readId', 'pos', prefix)
+    colnames(slong)=c('readID', 'pos', prefix)
     slong$pos=as.numeric(substr(slong$pos, 2, 9999)) - 1 - aggFlank
-    sreord = data.frame(readId = hc$labels[hc$order], order = 1:length(hc$labels))
+    sreord = data.frame(readID = hc$labels[hc$order], order = 1:length(hc$labels))
     colnames(sreord)[2] = paste0('ord.',prefix)
     blocks[[prefix]] = smat
     lblocks[[prefix]] = slong
     reord[[prefix]] = sreord
-    sresults = merge(slong, sreord, by = 'readId')
+    sresults = merge(slong, sreord, by = 'readID')
     if (first){
       allres = sresults
       first=F
     } else {
-      allres=merge(allres, sresults, by=c('readId','pos'))
+      allres=merge(allres, sresults, by=c('readID','pos'))
       allres=allres[order(allres$pos),]
     }
   } else {
@@ -136,16 +136,33 @@ for (prefix in c('s','q','g')){
   }
 }
 
+sreord = data.frame(df2[!duplicated(df2$readID),c('readID', 'tpCutPos')])
+sreord = merge(sreord, allres[!duplicated(allres$readID),])
+x = order(sreord$tpCutPos, sreord$ord.s)
+sreord=sreord[x,]
+sreord$ord.t=1:nrow(sreord)
+#sreord$ord.t = rank(sreord$tpCutPos, sreord$ord.s, sreord$ord.q, ties.method = 'random')
 
+allres2 = merge(allres, sreord[,c('readID', 'ord.t')], all.x=T, by='readID')
+
+allres2$q[allres2$s %in% c('N','X')]=NA
 anchorPlot <- function(x, datatype='s', clustby='s'){
   ordCol=paste0('ord.',clustby)
-  gr = ggplot(x) + geom_raster(aes_string(x = 'pos', y = ordCol, fill = datatype)) + theme_bw() + 
-  #gr = ggplot(x, aes(x = pos,y = ord.s)) + geom_raster(aes(fill = s)) + theme_bw() + 
-    geom_vline(xintercept = 0, linetype='dashed', col='black')
+  ttls1 = list(s='Read sequence; ', g='Genomic sequence; ', q='Base-quality; ', t='Trim location; ')
+  ttls2 = list(s='Clustered by read sequence', g='Clustered by genomic sequence', q='Clustered by base-quality patterns', t='Clustered by trim location')
+  gr = ggplot(x, aes_string(x = 'pos', y = ordCol, fill = datatype)) + 
+    geom_raster(aes(alpha = as.numeric(pos == 0))) + # | s == 'N'))) + 
+    theme_bw() + 
+    scale_alpha(range = c(1,0)) + guides(alpha=FALSE)+
+    geom_vline(xintercept = 0, linetype='dashed', col='black') + ggtitle(label = paste0(ttls1[[datatype]],ttls2[[clustby]])) +
+    xlab('position relative 3\' trim site') + ylab('')
   if (is.numeric(x[[datatype]])){
-    gr = gr + scale_fill_gradientn(colours = heat.colors(80))
+    minq = min (x[[datatype]][x$s %in% c('A','C','G','T')])
+    maxq = max (x[[datatype]][x$s %in% c('A','C','G','T')]) 
+    gr = gr + scale_fill_gradientn(colours = heat.colors(80), limits = c(minq, maxq))
   } else {
-    gr = gr + scale_fill_manual(values = c("orange","green","blue","888888","red", "black"))  # A C G N T X
+    gr = gr + scale_fill_manual(values = c("orange","green","blue","#707070","red", "black"))
+      # A C G N T X
   }
   return(gr)
 }
@@ -153,13 +170,13 @@ anchorPlot <- function(x, datatype='s', clustby='s'){
 #print(aggFN)
 pdf(aggFN, width=15, height=50)
 if (length(absentData) > 0 && absentData == 'g'){
-  grid.arrange(anchorPlot(allres, 's','s'), anchorPlot(allres, 'q','s'), 
-               anchorPlot(allres, 's','q'), anchorPlot(allres, 'q','q'), 
+  grid.arrange(anchorPlot(allres2, 's','s'), anchorPlot(allres2, 'q','s'), 
+               anchorPlot(allres2, 's','q'), anchorPlot(allres2, 'q','q'), 
                ncol=2)
 } else {
-grid.arrange(anchorPlot(allres, 's','s'), anchorPlot(allres, 'q','s'), anchorPlot(allres, 'g','s'), 
-             anchorPlot(allres, 's','q'), anchorPlot(allres, 'q','q'), anchorPlot(allres, 'g','q'),
-             anchorPlot(allres, 's','g'), anchorPlot(allres, 'q','g'), anchorPlot(allres, 'g','g'),
+grid.arrange(anchorPlot(allres2, 's','s'), anchorPlot(allres2, 'q','s'), anchorPlot(allres2, 'g','s'), 
+             anchorPlot(allres2, 's','q'), anchorPlot(allres2, 'q','q'), anchorPlot(allres2, 'g','q'),
+             anchorPlot(allres2, 's','g'), anchorPlot(allres2, 'q','g'), anchorPlot(allres2, 'g','g'),
              ncol=3)
 }
 dev.off()
