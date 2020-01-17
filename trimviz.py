@@ -257,18 +257,18 @@ def main():
                                                                                                                           pipes.quote(tmpPre1_FN))       
     else: # user-specified RIDs
         cmd2 = "cat %s | sed 's/@//'  | sed 's/[ \/].*$//' | sed 's/$/\t/' > %s" % (rid_FN, readIDs1_FN) # clean up user-specified rids for seqtk
-        with open('./trimVisTmpFiles/tmp_bash2.sh', 'w') as fout:
+        with open(out_DN + '/trimVisTmpFiles/tmp_bash2.sh', 'w') as fout:
             print >> fout, cmd2
-        sout2 = subprocess.check_output(['bash', './trimVisTmpFiles/tmp_bash2.sh'])
+        sout2 = subprocess.check_output(['bash', out_DN + '/trimVisTmpFiles/tmp_bash2.sh'])
         print (sout2)
         cmd3 = "seqtk subseq %s %s | gzip > %s " % (pipes.quote(orig_FN1), readIDs1_FN, tmpPre1_FN)
     
-    with open('./trimVisTmpFiles/tmp_bash3.sh', 'w') as fout:
+    with open(out_DN + '/trimVisTmpFiles/tmp_bash3.sh', 'w') as fout:
             print >> fout, cmd3
             
     # retrieve from ORIG FQ using seqtk
     print ('sampling from original fastq using seqtk...')
-    sout3 = subprocess.check_output(['bash', './trimVisTmpFiles/tmp_bash3.sh'])
+    sout3 = subprocess.check_output(['bash', out_DN + '/trimVisTmpFiles/tmp_bash3.sh'])
     # this either runs seqtk sample -> readIDs1_FN & tmpPre1_FN; or, if rid_file (-r) is already specified, just seqtk subseq -> tmpPre1_FN
     # either way, files readIDs1_FN & tmpPre1_FN now exist
     print (sout3)
@@ -288,16 +288,16 @@ def main():
     ####################################################################################
  
     if (bam_FN != ''):
-        sub_bamFN = './trimVisTmpFiles/bamEntries1.sam'
+        sub_bamFN = out_DN + '/trimVisTmpFiles/bamEntries1.sam'
         cmd4A = 'samtools view -H %s > %s' % (bam_FN,  sub_bamFN)
         cmd4B = 'samtools view %s | fgrep -f %s | awk \'NF > 8{print} 1\' >> %s' % (bam_FN, readIDs1_FN, sub_bamFN)  # |  cut -f1-6,9
-        with open('./trimVisTmpFiles/tmp_bash6.sh', 'w') as fout:
+        with open(out_DN + '/trimVisTmpFiles/tmp_bash6.sh', 'w') as fout:
             print >> fout, cmd4A
             print >> fout, 'sleep 1'
             print >> fout, cmd4B
         print ('searching bam file using samtools and fgrep...')
         time.sleep(1)
-        sout = subprocess.check_output(['bash', './trimVisTmpFiles/tmp_bash6.sh'])
+        sout = subprocess.check_output(['bash', out_DN + '/trimVisTmpFiles/tmp_bash6.sh'])
         print ('getting fasta file...')
         # shove fasta file into giant dictionary
         fastaD=dict()
@@ -322,10 +322,10 @@ def main():
     if not softClipping:     
         # retrieve same reads (in readIDs1_FN) from TRIMMED FQ (proc_FN1) using seqtk
         cmd5 = "seqtk subseq %s %s | gzip > %s " % (proc_FN1, readIDs1_FN, tmpPost1_FN)
-        with open('./trimVisTmpFiles/tmp_bash4.sh', 'w') as fout:
+        with open(out_DN + '/trimVisTmpFiles/tmp_bash4.sh', 'w') as fout:
             print >> fout, cmd5
         print ('Finding the reads in trimmed fastq file using seqtk...')
-        sout4 = subprocess.check_output(['bash', './trimVisTmpFiles/tmp_bash4.sh'])
+        sout4 = subprocess.check_output(['bash', out_DN + '/trimVisTmpFiles/tmp_bash4.sh'])
         print (sout4)
         
         # load results into dict 'post'
@@ -552,7 +552,7 @@ def main():
 
     
     #with tempfile.NamedTemporaryFile(delete = False) as tempf:
-    tempfname = './trimVisTmpFiles/trimviz_readData.tsv'
+    tempfname = out_DN + '/trimVisTmpFiles/trimviz_readData.tsv'
     with open (tempfname,'w') as fout:
         line = ['read', 'position', 'seq', 'qual', 'fp_cutoff', 'tp_cutoff']
         line.extend(madapt)
@@ -591,9 +591,8 @@ def main():
     #   MAIN    part 6: prepare aggregate / trim-anchored read matrices
     ##################################################################################            
       
-    runsheet={'3pcut':'./trimVisTmpFiles/seq3psites.txt', '5pcut':'./trimVisTmpFiles/seq5psites.txt'}
+    runsheet={'3pcut':out_DN + '/trimVisTmpFiles/seq3psites.txt', '5pcut':out_DN + '/trimVisTmpFiles/seq5psites.txt'}
     for cls, clsfile in runsheet.items():
-        i=0
         with open(clsfile, 'w') as fout:
             bs = range(aggFlank*2+1)
             if bam_FN == '':
@@ -601,7 +600,6 @@ def main():
             else:
                 print >> fout, '\t'.join(['readID', 'tpCutPos'] + ['s'+str(i+1) for i in bs] + ['q'+str(i+1) for i in bs] + ['g'+str(i+1) for i in bs])
             for r in rid_class[cls]:
-                if i < 200: #if r in toPlot:
                     rdat=both[r]
                     ps=padstr(rdat[2], rdat[5]-1, aggFlank, r)  # pre-seq; 3' trim site (0-based so should not exceed len(rdat[2]) ); flanking seq = 20. returns list
                     pq=padstr(rdat[3], rdat[5]-1, aggFlank, r)
