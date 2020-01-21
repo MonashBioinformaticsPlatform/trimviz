@@ -69,7 +69,7 @@ def main():
     gr_FN = 'indivReadPlots.pdf'
     aggGr_FN = 'aggPlot.pdf'
     tblOut_FN = 'trimVisData.tsv'
-    class_opts = ['uncut','5pcut','3pcut','removed']  # codify as 0,1 and 2
+    class_opts = ['uncut','5pcut','3pcut','removed','indel','generated_warning']  # not all reads generating warning are included (many are not plottable). indel just for debugging purposes
     
     # set defaults
     orig_FN1 = str('')  # u   'untrimmed='
@@ -151,7 +151,7 @@ def main():
     ###########################################################################################
     coi = [x for x in coi_raw if x in class_opts]
     if len(coi) < len (coi_raw) and coi_raw != ['all']:
-        print ("Warning, values given in -c should include only 'uncut','5pcut','3pcut', and/or 'removed', comma-separated; or just -c 'all'")
+        print ("Warning, values given in -c should include only %s, comma-separated; or just -c 'all'") % (', '.join(class_opts))
     if not cmd_exists('seqtk'):
         print(' *** Could not find seqtk executable. Please install seqtk. Exiting. ***')
         exit()
@@ -353,6 +353,8 @@ def main():
         # check that post is now emptied out
         for r in post:
             print "WARNING: read ---- " + r + "  ---- not found in pre-trimmed data."
+            #rid_class['generated_warning'].extend([r]) # actually can't plot this (no 'pre-trimmed' entry)!
+            
             
         #########################################################
         #  Guess 5' and 3' trim sites using both seq and qual strings
@@ -372,9 +374,10 @@ def main():
                     both[r].append(fps[0] + 1)                # [ both[r][4]=start rel pre    ...so 3' trim len = (len([2])- [5]
                     both[r].append(fps[0] + 1 + len(rdat[0])) # for len=1, start, end on n,n+1 nucleotides
                     if len(fps)> 1:
-                        print "Warning - ambiguous trimming encountered for read %s - removing" % (r)
+                        print "Warning - ambiguous trimming (multiple possible trim-points) encountered for read %s" % (r)
                         print len(fps)
                         print rdat
+                        rid_class['generated_warning'].extend([r])
                         #both.pop(r)
                 else:
                     print "WARNING: read ", r, " does not have all associated data, or the trimmed sequence was not a substring of full sequence."
@@ -402,6 +405,7 @@ def main():
         bfin = pysam.AlignmentFile(sub_bamFN,'r')
         genome_fa = pysam.Fastafile(gfasta_FN)  #'/references/iGenomes/Caenorhabditis_elegans/Ensembl/WBcel235/Sequence/WholeGenomeFasta/genome.fa'
         BamAlnsDone=set()
+        internal_insertions = set()
         for r in bfin:
             
             # 1) build refBlocks into coords for fethching the ref sequence (non-contiguous) that look like this:
@@ -452,7 +456,7 @@ def main():
                 nlpad = max(0, scLead - refBlocks[0][0]) # if runs off edge of contig:
                 scLead -= nlpad
                 refBlocks = [(refBlocks[0][0]-scLead, refBlocks[0][0])] +  refBlocks   
-            if cigTuples[-1][0]==4:
+            if cigTuples[-1][0]==4:  # trailing soft-clipped.
                 scTrail += cigTuples[-1][1]
                 nrpad = max(0, (refBlocks[-1][1] + scTrail)-reflen) # if runs off edge of contig:
                 scTrail -= nrpad
@@ -483,13 +487,33 @@ def main():
             lpad = 'X' * nlpad
             rpad = 'X' * nrpad                
             gblocks = [genome_fa.fetch(refname, rb[0], rb[1]) for rb in refBlocks]
-            gSeg = lpad + ''.join(gblocks) + rpad
+
+            # compensate for any insertions relative to the reference, by inserting X in reference segment:
+            gblocks2=list()
+            gblocks_pos=0
+            for cti in range(len(cigTuples)):
+                if cigTuples[cti][0] == 1: # "I" / insertion relative to the reference: add X's
+                    gblocks2.append('X'* cigTuples[cti][1])
+                    rid_class['indel'].extend([id2])
+                elif cigTuples[cti][0] == 0 or cigTuples[cti][0] == 4: # "M" / matching segment or "S" soft-clipped: add the gblock
+                    gblocks2.append(gblocks[gblocks_pos])
+                    if not (len(gblocks2[-1])) == cigTuples[cti][1]:
+                        print ('Warning: genomic block length doesnt match cigar operation (readname: %s )') % ( id2 )
+                        rid_class['generated_warning'].extend([ id2 ])
+                    gblocks_pos +=1
+
+            gSeg = lpad + ''.join(gblocks2) + rpad
             if r.is_reverse:
-                gSeg = srevcomp(gSeg)
+                gSeg = srevcomp(gSeg)  # revcomp the alignment, because in viz everything is relative to the read orientation
                 joinLocs=[x[0] for x in refBlocks[::-1]]
+                refpos=nrpad
+                cigTuplesTmp = cigTuples[::-1]
             else:
                 joinLocs=[x[1] for x in refBlocks]
-            bamInfo[id2] = [gSeg, joinLocs]
+                refpos=nlpad
+                cigTuplesTmp=cigTuples
+                
+            bamInfo[id2] = [gSeg, joinLocs] # don't really use joinLocs for anything anymore...
             
             if softClipping: # also fill out 'both' entry for alignment / softclipped portions
                 rdat=pre[id2]
@@ -511,7 +535,7 @@ def main():
                 for adapt in madapt:
                     newBothEntry.append(seqmatch(rdat[0], adapt))  # ref=pretrim seq, query=adapt
                 both[id2] = newBothEntry
-                    
+                
         if len(seqsNotFound) > 0:
             print "Warning;  reference chromosome/contig names in bam file were not in fasta file. These are: " + ', '.join([ x for x in set(seqsNotFound)]) 
        
@@ -590,14 +614,16 @@ def main():
                     else:
                         line.extend(['N'])
                 print >> fout, '\t'.join(line)
-    print "FILE1 READY:"
-    print tempfname
+    #print "FILE1 READY:"
+    #print tempfname
   
     ##################################################################################
     #   MAIN    part 6: prepare aggregate / trim-anchored read matrices
     ##################################################################################            
       
-    runsheet={'3pcut':out_DN + '/trimVisTmpFiles/seq3psites.txt', '5pcut':out_DN + '/trimVisTmpFiles/seq5psites.txt'}
+    #     runsheet={'3pcut':out_DN + '/trimVisTmpFiles/seq3psites.txt', '5pcut':out_DN + '/trimVisTmpFiles/seq5psites.txt', 'indel':out_DN + '/trimVisTmpFiles/indel_sites.txt'}
+    runsheet={'3pcut':out_DN + '/trimVisTmpFiles/seq3psites.txt'} #, '5pcut':out_DN + '/trimVisTmpFiles/seq5psites.txt'}
+    difflens = 0
     for cls, clsfile in runsheet.items():
         with open(clsfile, 'w') as fout:
             bs = range(aggFlank*2+1)
@@ -611,14 +637,21 @@ def main():
                     pq=padstr(rdat[3], rdat[5]-1, aggFlank, r)  # pad quals with 'N's which are not legit qual characters (highest is 'J')
                     if bam_FN != '':                      
                         if r in bamInfo:
-                            gSeq=bamInfo[r][0]
+                            gSeg=bamInfo[r][0]
                         else:
-                            gSeq='N'*len(rdat[2])
-                        gs=padstr(gSeq, rdat[5]-1, aggFlank, r)
+                            gSeg='N'*len(rdat[2])
+                        gs=padstr(gSeg, rdat[5]-1, aggFlank, r) 
+
+                        if not len (gSeg) == len (rdat[2]):
+                            difflens += 1
+
+
                         print >> fout, '\t'.join([r, str(rdat[5])] + ps + [str(ord(x)) for x in pq] + gs)
                     else:
                         print >> fout, '\t'.join([r, str(rdat[5])] + ps + [str(ord(x)) for x in pq])  # N's -> 78. Highest legit q-val is 'J' (-> 74)
-                    
+    
+    if difflens > 0:
+        print ("Warning: %d reads showed read length not equal between fastq and bam file. Was there an intervening read-trimming step? If not, it is not just soft-clipping being visualized....") % difflens
  
         
     ###########################
@@ -724,7 +757,7 @@ def print_help ():
     -T/--trimmed_r2       Read2 fastq file corresponding to -t file (not implemented yet)
     -b/--bam              Bam file (optional in FQ mode; required in SC mode). Only R1 alignments will be extracted (or only R2 if -e is set).
     -g/--genome_fasta     Fasta file of genome sequence (required if using .bam alignment)
-    -c/--classes          ['all'] Which trim-classes to analyse. Either 'all' or one/several of 'uncut','5pcut','3pcut','removed'
+    -c/--classes          ['all'] Which trim-classes to analyse. Either 'all' or one/several of 'uncut','5pcut','3pcut','removed','generated_warning','indel'
     -a/--adapt:           ['AAAAAATGGAATTCTCGGGTGCCAAGGAACTCCAGTCACCGTTCAGAGTTCTACAGTCCGACGATC'] comma-separated adapter sequences to highlight
     -A/--adaptfile        Text file containing adapter sequences
     -n/--sample_size      [50000] internal parameter: max reads to subsample in file (should be >> -m and -v, especially if only a small proportion are trimmed)
