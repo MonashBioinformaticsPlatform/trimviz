@@ -248,15 +248,16 @@ def main():
         print 'target number of reads (orig fastq): %d' % (target_n_pre)
         pcnt_sgn = """%"""
         # split output into a temp fq file (tmpPre1_FN) and a readname list file (readIDs1_FN)
-        # remove @, anything after a space in readname; append a tab char to improve fgrep specificity for bam-searching 
-        cmd3 = "seqtk sample -s%d %s %d | tee >(awk '1 == NR %s 4' | sed 's/@//'  | sed 's/[ \/].*$//' | sed 's/$/\t/' > %s ) | gzip > %s" % (rseed,
+        # remove @, anything after a space in readname; append a tab char to improve fgrep specificity for bam-searching
+        # note: sed 's/[ \/].*$//' messes up seqtk search of fastqs with RNs ending in /1 or /2 (but is required to search bams)
+        cmd3 = "seqtk sample -s%d %s %d | tee >(awk '1 == NR %s 4' | sed 's/@//'  | sed 's/[ ].*$//' | sed 's/$/\t/' > %s ) | gzip > %s" % (rseed,
                                                                                                                           pipes.quote(orig_FN1),
                                                                                                                           target_n_pre,
                                                                                                                           pcnt_sgn,
                                                                                                                           readIDs1_FN,
                                                                                                                           pipes.quote(tmpPre1_FN))       
     else: # user-specified RIDs
-        cmd2 = "cat %s | sed 's/@//'  | sed 's/[ \/].*$//' | sed 's/$/\t/' > %s" % (rid_FN, readIDs1_FN) # clean up user-specified rids for seqtk
+        cmd2 = "cat %s | sed 's/@//'  | sed 's/[ ].*$//' | sed 's/$/\t/' > %s" % (rid_FN, readIDs1_FN) # clean up user-specified rids for seqtk
         with open(out_DN + '/trimVisTmpFiles/tmp_bash2.sh', 'w') as fout:
             print >> fout, cmd2
         sout2 = subprocess.check_output(['bash', out_DN + '/trimVisTmpFiles/tmp_bash2.sh'])
@@ -281,17 +282,22 @@ def main():
     f_pre.close()
     
     both = dict()                                  # this will be used to store pre- and post- trimmed fqs
-    rid_class={'uncut':[], '5pcut':[],'3pcut':[], 'removed':[]} # will also classify them into the 3 classes and make ID list for each class (-> rid_class)
+    rid_class={'uncut':[], '5pcut':[],'3pcut':[], 'removed':[], 'generated_warning':[], 'indel':[]} # will also classify them into the 3 classes and make ID list for each class (-> rid_class)
         
     ####################################################################################
     # MAIN part 2.1: (optional): extract from bam & fasta; save as temp file & dict (fastaD)
     ####################################################################################
  
     if (bam_FN != ''):
+        # remove /1 and /2 from end of readnames for bam-searching, replace the terminal tab char
+        readIDs1_FN2 = readIDs1_FN + '.2'
+        cmd3B = "cat %s | sed 's/[\/].*$/\t/' > %s" % (readIDs1_FN, readIDs1_FN2)
         sub_bamFN = out_DN + '/trimVisTmpFiles/bamEntries1.sam'
         cmd4A = 'samtools view -H %s > %s' % (bam_FN,  sub_bamFN)
-        cmd4B = 'samtools view %s | fgrep -f %s | awk \'NF > 8{print} 1\' >> %s' % (bam_FN, readIDs1_FN, sub_bamFN)  # |  cut -f1-6,9
+        cmd4B = 'samtools view %s | fgrep -f %s | awk \'NF > 8{print} 1\' >> %s' % (bam_FN, readIDs1_FN2, sub_bamFN)  # |  cut -f1-6,9
         with open(out_DN + '/trimVisTmpFiles/tmp_bash6.sh', 'w') as fout:
+            print >> fout, cmd3B
+            print >> fout, 'sleep 1'
             print >> fout, cmd4A
             print >> fout, 'sleep 1'
             print >> fout, cmd4B
