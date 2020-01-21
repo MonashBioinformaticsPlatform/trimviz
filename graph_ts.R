@@ -8,14 +8,17 @@ library(gridExtra)
 
 ## Collect arguments
 args <- commandArgs(TRUE)
-if (length(args) != 4){
+if (length(args) != 2){
   print (args)
   stop('incorrect number of arguments given to graph_ts.R')
 }
-#setwd(args[3])
-aggFN = args[3]
-maxAggN = as.integer(args[4])
-df <- read.table(file = args[1], comment.char = '', header=TRUE)
+out_DN = args[1]
+maxAggN = as.integer(args[2])
+reads_FN = paste0(out_DN, '/trimVisTmpFiles/trimviz_readData.tsv')
+seq3p_FN = paste0(out_DN, '/trimVisTmpFiles/seq3psites.txt')
+aggFN = paste0(out_DN, '/TVheatmap.pdf')
+
+df <- read.table(file = reads_FN, comment.char = '', header=TRUE)
 #df <- read.table(file = './trimVisTmpFiles/trimviz_readData.tsv', comment.char = '', header=TRUE)
 graphchunk = 5
 rnames = unique(df$read)
@@ -40,7 +43,7 @@ if ('genomic_seq' %in% colnames(df)){
 print('current directory:')
 print(getwd())
 #print(args[2])
-pdf(args[2], width = 14, height = 8)
+pdf(paste0(out_DN, '/indiv_reads.pdf'), width = 14, height = 8)
 maxcol=max(df$consec_adapt_residues, na.rm = T)
 for (i in 1:as.integer(length(rnames)/graphchunk)){
   tograph = rnames[(i*graphchunk-1):(i*graphchunk+graphchunk-2)]
@@ -76,8 +79,7 @@ for (i in 1:as.integer(length(rnames)/graphchunk)){
 }
 dev.off()
 
-
-df2 <- read.table('./trimVisTmpFiles/seq3psites.txt', header = T, colClasses = 'character') # columns of Ts can be interpreted as logical
+df2 <- read.table(seq3p_FN, header = T, colClasses = 'character') # columns of Ts can be interpreted as logical
 colConvert=data.frame(pattern=c('^readID$', 'CutPos', '^[gs][\\d]+$','^q[\\d]+$'), fun=1:4)
 colConvert$fun=c(as.character, as.integer, function(x){factor(x, levels=c('A', 'C','G','T','X','N'))}, as.integer)
 for (rw in 1:nrow(colConvert)){

@@ -618,8 +618,9 @@ def main():
     ###########################
     # << CALL R SCRIPT HERE >>#
     ###########################
+    cmd6 = 'Rscript ' +'./graph_ts.R '+ out_DN + ' ' + str(maxAggN)  #os.curdir
 
-    cmd6 = 'Rscript ' +'./graph_ts.R '+ tempfname + ' ' + out_DN + '/' + gr_FN + ' ' + out_DN +'/' + aggGr_FN + ' ' + str(maxAggN)  #os.curdir
+    #cmd6 = 'Rscript ' +'./graph_ts.R '+ tempfname + ' ' + out_DN + '/' + gr_FN + ' ' + out_DN +'/' + aggGr_FN + ' ' + str(maxAggN)  #os.curdir
     print (cmd6)
     rout = subprocess.check_output(cmd6, shell=True)
     
