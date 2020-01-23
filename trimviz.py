@@ -20,7 +20,7 @@ class fastq:
     def __iter__(self): return self
     def next(self):
         id = re.sub('\/.+$', '', self.f.next().rstrip()) # remove all after forward slash
-        s  = self.f.next().rstrip()
+        s  = self.f.next().rstrip().upper() # convert to uppercase (<----- maybe change in future? Cutadapt can convert to lowercase instead of trimming, this will be missed)
         self.f.next()
         q = self.f.next().rstrip()
         #return {'id': id.partition(' ')[0], 'seq': s, 'qual': q}
@@ -322,7 +322,7 @@ def main():
     
     
     ####################################################################################
-    # MAIN part 2.2: (optional): extract from post-trimmed fastq; merge into dict 'both'
+    # MAIN part 2.2: (FQ mode only): extract from post-trimmed fastq; merge into dict 'both'
     ####################################################################################  
     
     if not softClipping:     
@@ -363,7 +363,7 @@ def main():
     
         removeread = list()
         maxReadLen=0
-        for r, rdat in both.items():
+        for r, rdat in both.items(): # rdat: 0-postSeq 1-postQual 2-preSeq 3-preQual
             if len(rdat[0]) > 0: # read present in processed
                 if len(rdat) == 4 and rdat[0] in rdat[2]:
                     maxReadLen = max(maxReadLen, len(rdat[2]))
@@ -651,7 +651,10 @@ def main():
                         print >> fout, '\t'.join([r, str(rdat[5])] + ps + [str(ord(x)) for x in pq])  # N's -> 78. Highest legit q-val is 'J' (-> 74)
     
     if difflens > 0:
-        print ("Warning: %d reads showed read length not equal between fastq and bam file. Was there an intervening read-trimming step? If not, it is not just soft-clipping being visualized....") % difflens
+        print ( ' --- ')
+        print ("Warning: %d reads showed read length not equal between fastq and bam file. Was there an intervening read-trimming step? If not, it is not just soft-clipping being visualized.") % difflens
+        print ( 'This may have unexpected effects. It is strongly recommended to use only the fastq file that was directly input to the aligner.')
+        print ( ' --- ')
  
         
     ###########################
@@ -664,7 +667,6 @@ def main():
     rout = subprocess.check_output(cmd6, shell=True)
     
     print "R stdout:", rout
-        
    
 # <<<<<<<<<<<<<<<<< END MAIN >>>>>>>>>>>>>>>>>>>
 
