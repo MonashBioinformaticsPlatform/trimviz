@@ -573,12 +573,14 @@ def main():
     else:
         toPlot = random.sample(both.keys(), nvis)
     print ("Trim-classification results from the random sample of %d reads") % (target_n_pre)
+    trimClassTbl = dict()
     for cls in rid_class.keys():
         ncls = len(rid_class[cls])
         if balance and ncls < nvis:
             print ("There were %d reads classed as %s. (Warning: this was less than requested for plotting (-v). Increase sample size using -n)") % (ncls , cls)
         else:
             print ("There were %d reads classed as %s.") % (ncls , cls)
+        trimClassTbl[cls] = ncls
 
     
     #with tempfile.NamedTemporaryFile(delete = False) as tempf:
@@ -632,7 +634,7 @@ def main():
             else:
                 print >> fout, '\t'.join(['readID', 'tpCutPos'] + ['s'+str(i+1) for i in bs] + ['q'+str(i+1) for i in bs] + ['g'+str(i+1) for i in bs])
             for r in rid_class[cls]:
-                    rdat=both[r]
+                    rdat=both[r]                                # both[id] = 0-postSeq 1-postQual 2-preSeq 3-preQual ("post" is the "-t" fastq file; "pre" is the "-u" fastq file)
                     ps=padstr(rdat[2], rdat[5]-1, aggFlank, r)  # pre-seq; 3' trim site (0-based so should not exceed len(rdat[2]) ); flanking seq = 20. returns list
                     pq=padstr(rdat[3], rdat[5]-1, aggFlank, r)  # pad quals with 'N's which are not legit qual characters (highest is 'J')
                     if bam_FN != '':                      
@@ -642,7 +644,10 @@ def main():
                             gSeg='N'*len(rdat[2])
                         gs=padstr(gSeg, rdat[5]-1, aggFlank, r) 
 
-                        if not len (gSeg) == len (rdat[2]):
+                        if softClipping:
+                            if not len (gSeg) == len (rdat[2]): #if SC, bam align len should match -u file
+                                difflens += 1
+                        elif not len (gSeg) == len (rdat[0]):  #if not SC, bam align len should match -t file
                             difflens += 1
 
 
@@ -667,6 +672,25 @@ def main():
     rout = subprocess.check_output(cmd6, shell=True)
     
     print "R stdout:", rout
+    
+    ###########################
+    # << MAKE HTML REPORT   >>#
+    ###########################
+    cmd7 = 'python ./' #os.curdir
+
+    #cmd6 = 'Rscript ' +'./graph_ts.R '+ tempfname + ' ' + out_DN + '/' + gr_FN + ' ' + out_DN +'/' + aggGr_FN + ' ' + str(maxAggN)  #os.curdir
+    print (cmd6)
+    rout = subprocess.check_output(cmd6, shell=True)
+    
+    mode = "Fastq-fastq comparison mode, with alignment"
+    if softClipping:
+        mode = "Fastq-bam soft-clipping mode"
+    elif bam_FN == '':
+        mode = "Fastq-fastq comparison mode"
+    report = makeReport(mode, out_DN, trimClassTbl, len(pre), orig_FN1, proc_FN1, orig_FN2, proc_FN2, bam_FN, gfasta_FN,
+                        PDF_FNs=['TVheatmap_S.pdf','TVheatmap_Q.pdf','indiv_reads.pdf'], TPCs=['3pcut'])
+    with open (out_DN+'/trimvis_report.html', 'w') as fout:
+        print >> fout, report
    
 # <<<<<<<<<<<<<<<<< END MAIN >>>>>>>>>>>>>>>>>>>
 
@@ -784,6 +808,67 @@ def print_help ():
     R libs:
     ggplot2,dplyr,ape,reshape2,gridExtra
     '''
+
+def makeReport(mode, out_DN, trimClassTbl, lenpre, orig_FN1, proc_FN1, orig_FN2, proc_FN2, bam_FN, gfasta_FN, PDF_FNs=[], TPCs=[]):      
+    report=list()                                                                            
+    report.append ('''<!DOCTYPE html>
+    <style>
+    table.mytable-marg{
+        border-collapse: collapse;
+    }
+    table.mytable-marg td, table.mytable-marg th{
+      border: 1px solid #ccc;
+      text-align: left;
+      padding-right: 18px; 
+      padding-left: 10px;
+      font-weight: normal
+    }
+    </style>
+    ''')
+    
+    report.append( '<h1> Trimviz trimming summary: %s </h1> <br><hr/><br>' % mode )
+    
+    VAR1={'Untrimmed R1 fastq file':orig_FN1,
+          'Trimmed R1 fastq file':proc_FN1,
+          'Untrimmed R2 fastq file':orig_FN2,
+          'Trimmed R2 fastq file':proc_FN2,
+          'bam file':bam_FN,
+          'genome fasta file':gfasta_FN}
+    
+    report.append ('<br>'.join( (k + ': ' + v) for (k, v) in VAR1.items() if not v=='')  )
+
+    htmlTbl = '''
+    <h3> Summary of trimming frequency </h3>
+    <table class="mytable-marg" ><tr><th><b>Trim class</b></th><th><b>Number of reads</b></th></tr>
+    '''
+    for (cls, ncls) in trimClassTbl.items():
+        htmlTbl += '<tr><th> %s </th><th> %d </th>' % (cls , ncls)
+    htmlTbl += '<tr><th><b>Tot unique</b></th><th><b>%d</b></th></tr>' % (lenpre)     
+    htmlTbl += '</table><br><hr/>'
+    report.append (htmlTbl)
+    
+    for c in TPCs:
+        htmlblock = '<p> %s trim position profile: <img src="%s_hist.png" title="trimming profile"' % (c,c)
+        htmlblock += 'alt="" style="display: block; margin: auto;" /></p><br>'
+        report.append( htmlblock )
+        
+    #<!-- VAR7 example: ['3p','5p']; (repeat html block len(VAR7) times) --> 
+    
+    
+    pdfs = {'TVheatmap_S.pdf':'Heatmap, reads clustered by untrimmed read sequence',
+            'TVheatmap_Q.pdf':'Heatmap, reads clustered by quality patterns',
+            'TVheatmap_G.pdf':'Heatmaps, clustered by local reference sequence',
+            'indiv_reads.pdf':'Individual read trimming, grouped by trimming class'}
+ 
+    for (fn) in PDF_FNs:
+        htmlblock = '<hr/><details> <summary> %s </summary> <br>' % (pdfs[fn])
+        htmlblock += '<embed src= %s type="application/pdf" width="100%%" height="600px" />' % (fn)
+        htmlblock += '<br> </details> <p> <br></p>'
+        report.append( htmlblock )
+    
+    report.append('<br>')
+    return(''.join(report))
+
 
 if __name__ == "__main__":
     main()

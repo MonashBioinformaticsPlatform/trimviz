@@ -16,7 +16,7 @@ out_DN = args[1]
 maxAggN = as.integer(args[2])
 reads_FN = paste0(out_DN, '/trimVisTmpFiles/trimviz_readData.tsv')
 seq3p_FN = paste0(out_DN, '/trimVisTmpFiles/seq3psites.txt')
-aggFN = paste0(out_DN, '/TVheatmap.pdf')
+#aggFN = paste0(out_DN, '/TVheatmap.pdf')
 
 df <- read.table(file = reads_FN, comment.char = '', header=TRUE)
 #df <- read.table(file = './trimVisTmpFiles/trimviz_readData.tsv', comment.char = '', header=TRUE)
@@ -40,9 +40,6 @@ if ('genomic_seq' %in% colnames(df)){
   genSeq=T
   
 }
-print('current directory:')
-print(getwd())
-#print(args[2])
 pdf(paste0(out_DN, '/indiv_reads.pdf'), width = 14, height = 8)
 maxcol=max(df$consec_adapt_residues, na.rm = T)
 for (i in 1:as.integer(length(rnames)/graphchunk)){
@@ -78,7 +75,7 @@ for (i in 1:as.integer(length(rnames)/graphchunk)){
   print(gr)
 }
 dev.off()
-
+print (seq3p_FN)
 df2 <- read.table(seq3p_FN, header = T, colClasses = 'character') # columns of Ts can be interpreted as logical
 colConvert=data.frame(pattern=c('^readID$', 'CutPos', '^[gs][\\d]+$','^q[\\d]+$'), fun=1:4)
 colConvert$fun=c(as.character, as.integer, function(x){factor(x, levels=c('A', 'C','G','T','X','N'))}, as.integer)
@@ -169,16 +166,21 @@ anchorPlot <- function(x, datatype='s', clustby='s'){
   return(gr)
 }
 
-#print(aggFN)
-pdf(aggFN, width=15, height=50)
 if (length(absentData) > 0 && absentData == 'g'){
-  grid.arrange(anchorPlot(allres2, 's','s'), anchorPlot(allres2, 'q','s'), 
-               anchorPlot(allres2, 's','q'), anchorPlot(allres2, 'q','q'), 
-               ncol=2)
+  pdf( paste0(out_DN, '/TVheatmap_S.pdf'), width=15, height=20)
+    grid.arrange(anchorPlot(allres2, 's','s'), anchorPlot(allres2, 'q','s'), ncol=2)
+  dev.off()
+  pdf( paste0(out_DN, '/TVheatmap_Q.pdf'), width=15, height=20)
+    grid.arrange(anchorPlot(allres2, 's','q'), anchorPlot(allres2, 'q','q'), ncol=2)
+  dev.off()
 } else {
-grid.arrange(anchorPlot(allres2, 's','s'), anchorPlot(allres2, 'q','s'), anchorPlot(allres2, 'g','s'), 
-             anchorPlot(allres2, 's','q'), anchorPlot(allres2, 'q','q'), anchorPlot(allres2, 'g','q'),
-             anchorPlot(allres2, 's','g'), anchorPlot(allres2, 'q','g'), anchorPlot(allres2, 'g','g'),
-             ncol=3)
+  pdf( paste0(out_DN, '/TVheatmap_S.pdf'), width=15, height=20)
+    grid.arrange(anchorPlot(allres2, 's','s'), anchorPlot(allres2, 'q','s'), anchorPlot(allres2, 'g','s'), ncol=3)
+  dev.off()
+  pdf( paste0(out_DN, '/TVheatmap_Q.pdf'), width=15, height=20)
+    grid.arrange(anchorPlot(allres2, 's','q'), anchorPlot(allres2, 'q','q'), anchorPlot(allres2, 'g','q'), ncol=3)
+  dev.off()
+  pdf( paste0(out_DN, '/TVheatmap_G.pdf'), width=15, height=20)
+    grid.arrange(anchorPlot(allres2, 's','g'), anchorPlot(allres2, 'q','g'), anchorPlot(allres2, 'g','g'), ncol=3)
+  dev.off()
 }
-dev.off()
