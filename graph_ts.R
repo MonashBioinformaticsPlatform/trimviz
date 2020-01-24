@@ -114,6 +114,22 @@ for (prefix in c('s','q','g')){
     }
     else { # numerical val
       d = dist(smat)
+      # while we're here, reset the zero of quals
+      minq = min(smat, na.rm = T)
+      maxq = max(smat[smat != 78 & smat != 88], na.rm = T) # get rid of N's and X's inserted into qvals
+      zeroQual=0
+      if (minq > 32 && maxq < 75){
+        print ("Guessing phred encoding as either Illumina 1.8+ Phred+33 (0-41 raw) or Sanger Phred+33 (0-40 raw)")
+        zeroQual = 33
+      } else {
+        print ("Cannot guess phred encoding. Leaving q-vals as-is.")
+        print (paste0("Max qval:", maxq, "  Min qval:", minq))
+      }
+      smat = smat - zeroQual
+      for (cl in which(scols)){
+        # df2[,cl][df2[,cl] == 78 | df2[,cl] == 88]=NA # not necessary, handle it in plotting function
+        df2[,cl] = df2[,cl] - zeroQual
+      }
     }
     hc = hclust(d)
     slong = melt(data = smat)
