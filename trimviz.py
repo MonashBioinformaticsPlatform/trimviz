@@ -80,7 +80,7 @@ def main():
     keepTmp = False     # O                # <------- TODO make use of this parameter
     bam_FN = str('')    # b   'bam='
     gfasta_FN = str('') # g   'genome_fasta='
-    coi_raw = ['all']   # c   'classes='
+    coi_raw = ['uncut','3pcut','5pcut','removed']   # c   'classes='  
     target_n_pre=50000  # n   'sample_size='
     nvis=20             # v   'indiv_reads='  # if -R is not set, will aim to visualize this many reads from each individual trimming-class
     maxAggN = 200       # w   'heatmap_reads='
@@ -561,9 +561,10 @@ def main():
     #   MAIN    part 5: prepare long-form output for 1-by-1 read vis R
     ##################################################################################            
 
-   # sub-select balanced proportions of uncut, cut, removed for plotting
+    ### 5A: sub-select balanced proportions of uncut, cut, removed for plotting ###
+    
     lookupCls = dict()
-    if (balance and coi_raw != ['all']):
+    if balance:
         toPlot=[]
         for cls in coi:
             ids = rid_class[cls]
@@ -585,8 +586,8 @@ def main():
             print ("There were %d reads classed as %s.") % (ncls , cls)
         trimClassTbl[cls] = ncls
 
+    ###  5B:  output the data file for 1-by-1 read vis ###
     
-    #with tempfile.NamedTemporaryFile(delete = False) as tempf:
     tempfname = out_DN + '/trimVisTmpFiles/trimviz_readData.tsv'
     with open (tempfname,'w') as fout:
         line = ['read', 'position', 'seq', 'qual', 'fp_cutoff', 'tp_cutoff']
@@ -626,7 +627,7 @@ def main():
     #   MAIN    part 6: prepare aggregate / trim-anchored read matrices
     ##################################################################################            
       
-    #     runsheet={'3pcut':out_DN + '/trimVisTmpFiles/seq3psites.txt', '5pcut':out_DN + '/trimVisTmpFiles/seq5psites.txt', 'indel':out_DN + '/trimVisTmpFiles/indel_sites.txt'}
+    #    TODO: option for heatmaps from the 5' trimmed reads
     runsheet={'3pcut':out_DN + '/trimVisTmpFiles/seq3psites.txt'} #, '5pcut':out_DN + '/trimVisTmpFiles/seq5psites.txt'}
     difflens = 0
     for cls, clsfile in runsheet.items():
@@ -790,7 +791,8 @@ def print_help ():
     -T/--trimmed_r2       Read2 fastq file corresponding to -t file (not implemented yet)
     -b/--bam              Bam file (optional in FQ mode; required in SC mode). Only R1 alignments will be extracted (or only R2 if -e is set).
     -g/--genome_fasta     Fasta file of genome sequence (required if using .bam alignment)
-    -c/--classes          ['all'] Which trim-classes to analyse. Either 'all' or one/several of 'uncut','5pcut','3pcut','removed','generated_warning','indel'
+    -c/--classes          [uncut,3pcut,removed,5pcut] Comma-separated trim-classes to visualise in individual read visualisation.
+                          One/several of 'uncut','5pcut','3pcut','removed','generated_warning','indel'
     -a/--adapt:           ['AAAAAATGGAATTCTCGGGTGCCAAGGAACTCCAGTCACCGTTCAGAGTTCTACAGTCCGACGATC'] comma-separated adapter sequences to highlight
     -A/--adaptfile        Text file containing adapter sequences
     -n/--sample_size      [50000] internal parameter: max reads to subsample in file (should be >> -m and -v, especially if only a small proportion are trimmed)

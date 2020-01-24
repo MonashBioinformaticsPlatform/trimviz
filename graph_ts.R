@@ -42,37 +42,39 @@ if ('genomic_seq' %in% colnames(df)){
 }
 pdf(paste0(out_DN, '/indiv_reads.pdf'), width = 14, height = 8)
 maxcol=max(df$consec_adapt_residues, na.rm = T)
-for (i in 1:as.integer(length(rnames)/graphchunk)){
-  tograph = rnames[(i*graphchunk-1):(i*graphchunk+graphchunk-2)]
+for (i in 0:floor(length(rnames)/graphchunk)){
+  tograph = rnames[((i*graphchunk)+1):(i*graphchunk+graphchunk)]
   temp = df[df$read %in% tograph,]
-  temp=temp[order(match(temp$read,df$df), temp$position),]
-  temp$read = substr(temp$read, 21, nchar(as.character(temp$read)))
-  temp$read=factor(temp$read, levels = unique(temp$read))
-  gr <- ggplot(data=temp, aes(x=position, y=qual, label=seq)) +
-    geom_rect(data= temp, aes(xmax = tp_cutoff-0.5, xmin = fp_cutoff-0.5, ymin = -12, ymax = max(qual)+10), size=0.01, colour = 'white', fill = 'white') +
-    geom_hline(data = data.frame(yint=c(0:5)*10), aes( yintercept = yint), colour = "#DDDDDD", size=0.5) +
-    geom_line() + geom_point() + 
-    geom_text(data=temp, mapping=aes(x=position, y=-4, label=seq, colour=consec_adapt_residues), size=2.7, fontface="bold") +
-    scale_colour_gradient(low="blue", high="red", na.value = "black") +
-    geom_vline(aes(xintercept = fp_cutoff-0.5), col="red") +
-    geom_vline(aes(xintercept = tp_cutoff-0.5), col="blue") +
-    facet_grid(read ~ .) +
-    theme_bw() +
-    theme(panel.grid.minor = element_blank(), 
-          panel.grid.major = element_blank(), 
-          panel.background = element_rect(fill = '#F0F0F0', colour = '#F0F0F0'),
-          legend.title = element_text(size = 10))+
-    ggtitle("grey zone = trimmed")+
-    labs(title = "Random sample of reads in trimmed read file", x = "Position on read. Grey zones indicate trimmed bases.", y = 'Quality of base call')
-  if(genSeq){
-  gr <- gr +  
-    geom_text(data=temp, mapping=aes(x=position, y=-10.5, label=genomic_seq), col='black', size=2.7) +
-    geom_text(data=temp, mapping=aes(x=position, y=-8.3, label=ifelse(genomic_seq==seq,' ', '*')), size=3.5, fontface="bold", col='red') + 
-    coord_cartesian(ylim=c(-10.8, max(temp$qual)+5), xlim=c(0,maxLen))
-  } else {
-    gr <- gr + coord_cartesian(ylim=c(-8, max(temp$qual)+5), xlim=c(0,maxLen))
+  if (nrow(temp) > 0){
+    temp=temp[order(match(temp$read,df$df), temp$position),]
+    temp$read = substr(temp$read, 21, nchar(as.character(temp$read)))
+    temp$read=factor(temp$read, levels = unique(temp$read))
+    gr <- ggplot(data=temp, aes(x=position, y=qual, label=seq)) +
+      geom_rect(data= temp, aes(xmax = tp_cutoff-0.5, xmin = fp_cutoff-0.5, ymin = -12, ymax = max(qual)+10), size=0.01, colour = 'white', fill = 'white') +
+      geom_hline(data = data.frame(yint=c(0:5)*10), aes( yintercept = yint), colour = "#DDDDDD", size=0.5) +
+      geom_line() + geom_point() + 
+      geom_text(data=temp, mapping=aes(x=position, y=-4, label=seq, colour=consec_adapt_residues), size=2.7, fontface="bold") +
+      scale_colour_gradient(low="blue", high="red", na.value = "black") +
+      geom_vline(aes(xintercept = fp_cutoff-0.5), col="red") +
+      geom_vline(aes(xintercept = tp_cutoff-0.5), col="blue") +
+      facet_grid(read ~ .) +
+      theme_bw() +
+      theme(panel.grid.minor = element_blank(), 
+            panel.grid.major = element_blank(), 
+            panel.background = element_rect(fill = '#F0F0F0', colour = '#F0F0F0'),
+            legend.title = element_text(size = 10))+
+      ggtitle("grey zone = trimmed")+
+      labs(title = "Random sample of reads in trimmed read file", x = "Position on read. Grey zones indicate trimmed bases.", y = 'Quality of base call')
+    if(genSeq){
+    gr <- gr +  
+      geom_text(data=temp, mapping=aes(x=position, y=-10.5, label=genomic_seq), col='black', size=2.7) +
+      geom_text(data=temp, mapping=aes(x=position, y=-8.3, label=ifelse(genomic_seq==seq,' ', '*')), size=3.5, fontface="bold", col='red') + 
+      coord_cartesian(ylim=c(-10.8, max(temp$qual)+5), xlim=c(0,maxLen))
+    } else {
+      gr <- gr + coord_cartesian(ylim=c(-8, max(temp$qual)+5), xlim=c(0,maxLen))
+    }
+    print(gr)
   }
-  print(gr)
 }
 dev.off()
 print (seq3p_FN)
