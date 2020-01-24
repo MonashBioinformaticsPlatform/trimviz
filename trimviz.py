@@ -451,11 +451,12 @@ def main():
             scTrail = 0
             nlpad = 0
             nrpad = 0
+            cigTuples2 = [x for x in cigTuples] # copy list
             if cigTuples[0][0] == 4:  # leading soft-clipped. TODO: hard clipped is '5'
                 scLead += cigTuples[0][1]
                 nlpad = max(0, scLead - refBlocks[0][0]) # if runs off edge of contig:
                 scLead -= nlpad
-                refBlocks = [(refBlocks[0][0]-scLead, refBlocks[0][0])] +  refBlocks   
+                refBlocks = [(refBlocks[0][0]-scLead, refBlocks[0][0])] +  refBlocks
             if cigTuples[-1][0]==4:  # trailing soft-clipped.
                 scTrail += cigTuples[-1][1]
                 nrpad = max(0, (refBlocks[-1][1] + scTrail)-reflen) # if runs off edge of contig:
@@ -481,8 +482,10 @@ def main():
                 nrpad += max( 0, rhs - reflen )
                 rhs = min(rhs, reflen)
                 if trimLead > 0:
+                    cigTuples2 =  [(4,refBlocks[0][0]-lhs)] + cigTuples2 # add a leading portion of soft-clipped (we build gseg from gblocks+cigtuples2 so they must be consistent)
                     refBlocks =  [(lhs, refBlocks[0][0])] + refBlocks
                 if trimTrail > 0:
+                    cigTuples2 =  cigTuples2 + [(4,rhs-refBlocks[-1][1])] # add a trailing portion of soft-clipped (we build gseg from gblocks+cigtuples2 so they must be consistent)
                     refBlocks = refBlocks + [(refBlocks[-1][1], rhs)] # add trimmed bits to outer segments of refBlocks
             lpad = 'X' * nlpad
             rpad = 'X' * nrpad                
@@ -491,13 +494,13 @@ def main():
             # compensate for any insertions relative to the reference, by inserting X in reference segment:
             gblocks2=list()
             gblocks_pos=0
-            for cti in range(len(cigTuples)):
-                if cigTuples[cti][0] == 1: # "I" / insertion relative to the reference: add X's
-                    gblocks2.append('X'* cigTuples[cti][1])
+            for cti in range(len(cigTuples2)):
+                if cigTuples2[cti][0] == 1: # "I" / insertion relative to the reference: add X's
+                    gblocks2.append('X'* cigTuples2[cti][1])
                     rid_class['indel'].extend([id2])
-                elif cigTuples[cti][0] == 0 or cigTuples[cti][0] == 4: # "M" / matching segment or "S" soft-clipped: add the gblock
+                elif cigTuples2[cti][0] == 0 or cigTuples2[cti][0] == 4: # "M" / matching segment or "S" soft-clipped: add the gblock
                     gblocks2.append(gblocks[gblocks_pos])
-                    if not (len(gblocks2[-1])) == cigTuples[cti][1]:
+                    if not (len(gblocks2[-1])) == cigTuples2[cti][1]:
                         print ('Warning: genomic block length doesnt match cigar operation (readname: %s )') % ( id2 )
                         rid_class['generated_warning'].extend([ id2 ])
                     gblocks_pos +=1
@@ -643,23 +646,27 @@ def main():
                         else:
                             gSeg='N'*len(rdat[2])
                         gs=padstr(gSeg, rdat[5]-1, aggFlank, r) 
-
                         if softClipping:
                             if not len (gSeg) == len (rdat[2]): #if SC, bam align len should match -u file
                                 difflens += 1
-                        elif not len (gSeg) == len (rdat[0]):  #if not SC, bam align len should match -t file
+                                rid_class['generated_warning'].extend([r])
+                        elif not len (gSeg) == len (rdat[2]):    # gSeg has already been adjusted in length to expand and match the -u read, if there was trimming between -u and -t
                             difflens += 1
-
-
                         print >> fout, '\t'.join([r, str(rdat[5])] + ps + [str(ord(x)) for x in pq] + gs)
                     else:
                         print >> fout, '\t'.join([r, str(rdat[5])] + ps + [str(ord(x)) for x in pq])  # N's -> 78. Highest legit q-val is 'J' (-> 74)
     
     if difflens > 0:
-        print ( ' --- ')
-        print ("Warning: %d reads showed read length not equal between fastq and bam file. Was there an intervening read-trimming step? If not, it is not just soft-clipping being visualized.") % difflens
-        print ( 'This may have unexpected effects. It is strongly recommended to use only the fastq file that was directly input to the aligner.')
-        print ( ' --- ')
+        if softClipping:
+            print ( " ---- " )
+            print ( "Warning: %d reads showed read length not equal between -u fastq and bam file. Was there an intervening read-trimming step? If not, it is not just soft-clipping being visualized." ) % difflens
+            print ( "This may have unexpected effects. In SC mode it is strongly recommended to use only the fastq file that was directly input to the aligner as the -u argument." )
+            print ( " ---- " )
+        else:
+            print ( " ---- " )
+            print ("Warning: %d reads showed read length not equal between -u fastq and bam file, and not accounted for by trimming between -u and -t. Was there an intervening read-trimming step?" ) % difflens
+            print ( "This may have unexpected effects. In FQ mode it is strongly recommended to use only the fastq file that was directly input to the aligner as the -t argument.")
+            print ( " ---- " )
  
         
     ###########################
