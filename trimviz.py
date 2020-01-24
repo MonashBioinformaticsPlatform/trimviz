@@ -150,8 +150,8 @@ def main():
     #  MAIN part 1:  arguments logic
     ###########################################################################################
     coi = [x for x in coi_raw if x in class_opts]
-    if len(coi) < len (coi_raw) and coi_raw != ['all']:
-        print ("Warning, values given in -c should include only %s, comma-separated; or just -c 'all'") % (', '.join(class_opts))
+    if len(coi) < len (coi_raw):
+        print ("Warning, values given in -c should include only %s, comma-separated") % (', '.join(class_opts))
     if not cmd_exists('seqtk'):
         print(' *** Could not find seqtk executable. Please install seqtk. Exiting. ***')
         exit()
@@ -162,12 +162,6 @@ def main():
     if os.path.exists(out_DN):
         print('Error: output directory already exists. Exiting.')
         exit()
-    try:
-        os.makedirs(out_DN)
-    except:
-        print('Error: Could not create output directory %s. Exiting.') % (out_DN)
-        exit()   
-    
     if not os.path.isfile(orig_FN1):
         if len(orig_FN1) > 0:
             print('Could not find input fastq file: ' + orig_FN1 + '. Exiting.')
@@ -176,37 +170,48 @@ def main():
             print ('No untrimmed R1 file given (required). Exiting.')
             print_help()
         exit()
-    if softClipping:
+    if bam_FN != '':
         if not os.path.isfile(bam_FN):
-            if len(bam_FN) > 0:
-                print('Could not find bam file ' + bam_FN + '. Exiting.')
-            else:
-                print('No bam filename was given (required in SC mode). Exiting.')
-                print_help()
+            print('Could not find bam file ' + bam_FN + '. Exiting.')
             exit()
-        if not (proc_FN1=='' and proc_FN2==''):
+        elif gfasta_FN == '':
+            print ('Bam file is given but could not corresponding genome fasta. Exiting.')
+            exit()
+        elif not os.path.isfile(gfasta_FN):
+            print ('Bam file is given but could not find corresponding genome fasta file '+ gfasta_FN + '. Exiting.')
+            exit()
+    else:
+        if 'indel' in coi:
+            coi = [x for x in coi if x != 'indel']
+            print ('Warning: cannot request indel as a trim-class without giving a bam file.')
+    if softClipping:
+        if bam_FN == '':
+            print('No bam filename was given (required in SC mode). Exiting.')
+            print_help()
+            exit()
+        if proc_FN1 != '' or proc_FN2 != '':
             print ("Warning, -t and -T options not used in SC mode. Ignoring.")  
     else:   
         if not os.path.isfile(proc_FN1):
-            if len(proc_FN1) > 0:
+            if proc_FN1 != '':
                 print('Could not find trimmed R1 fastq file ' + proc_FN1 + '. Exiting.')
             else:
                 print ('No trimmed R1 file given, but this is required in FQ mode. Exiting.')
                 print_help()
             exit()
-
-    if os.path.isfile(bam_FN) and not os.path.isfile(gfasta_FN):
-        if gfasta_FN == '':
-            print ('Bam file is given but could not corresponding genome fasta. Exiting.')
-        else:
-            print ('Bam file is given but could not find corresponding genome fasta file '+ gfasta_FN + '. Exiting.')
-        print_help()
-        exit()
-        
-    if not os.path.isfile(adapt_FN) and len(adapt_FN) > 0:
+    if not os.path.isfile(adapt_FN) and adapt_FN != '':
         print('Could not find file: ' + adaptfile + '. Exiting.')
         print_help()
         exit()
+    if len(coi)==0:
+        print("All -c arguments given were invalid. Exiting")
+        print_help()
+        exit()
+    try:
+        os.makedirs(out_DN)
+    except:
+        print('Error: Could not create output directory %s. Exiting.') % (out_DN)
+        exit()   
         
     random.seed(rseed)
 
