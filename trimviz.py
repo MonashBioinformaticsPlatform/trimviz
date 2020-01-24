@@ -827,20 +827,28 @@ def makeReport(mode, out_DN, trimClassTbl, lenpre, orig_FN1, proc_FN1, orig_FN2,
     report=list()                                                                            
     report.append ('''<!DOCTYPE html>
     <style>
-    table.mytable-marg{
-        border-collapse: collapse;
-    }
-    table.mytable-marg td, table.mytable-marg th{
-      border: 1px solid #ccc;
-      text-align: left;
-      padding-right: 18px; 
-      padding-left: 10px;
-      font-weight: normal
-    }
+        table.mytable-marg{
+            border-collapse: collapse;
+        }
+        table.mytable-marg td, table.mytable-marg th{
+          border: 1px solid #ccc;
+          text-align: left;
+          padding-right: 18px; 
+          padding-left: 10px;
+          font-weight: normal
+        }
+        .left-div {
+            float: left;
+            width: 40%;
+            margin-right: 8px;
+        }
+        .right-div {
+            margin-left: 45%;
+        }
     </style>
     ''')
     
-    report.append( '<h1> Trimviz trimming summary: %s </h1> <br><hr/><br>' % mode )
+    report.append( '<h1> Trimviz trimming summary: %s </h1> <br><hr/><br><div>' % mode )
     
     VAR1={'Untrimmed R1 fastq file':orig_FN1,
           'Trimmed R1 fastq file':proc_FN1,
@@ -850,8 +858,10 @@ def makeReport(mode, out_DN, trimClassTbl, lenpre, orig_FN1, proc_FN1, orig_FN2,
           'genome fasta file':gfasta_FN}
     
     report.append ('<br>'.join( (k + ': ' + v) for (k, v) in VAR1.items() if not v=='')  )
+    report.append ('<br></div><br><hr/>')
 
     htmlTbl = '''
+    <div class="left-div"> 
     <h3> Summary of trimming frequency </h3>
     <table class="mytable-marg" ><tr><th><b>Trim class</b></th><th><b>Number of reads</b></th></tr>
     '''
@@ -860,11 +870,16 @@ def makeReport(mode, out_DN, trimClassTbl, lenpre, orig_FN1, proc_FN1, orig_FN2,
     htmlTbl += '<tr><th><b>Tot unique</b></th><th><b>%d</b></th></tr>' % (lenpre)     
     htmlTbl += '</table><br><hr/>'
     report.append (htmlTbl)
+    report.append ('''</div>
+                   <div class="right-div">''')
     
     for c in TPCs:
-        htmlblock = '<p> %s trim position profile: <img src="%s_hist.png" title="trimming profile"' % (c,c)
-        htmlblock += 'alt="" style="display: block; margin: auto;" /></p><br>'
+        #htmlblock = '<p> %s trim position profile: <img src="%s_hist.png" title="trimming profile"' % (c,c)
+        #htmlblock += 'alt="" style="display: block; margin: auto;" /></p><br>'
+        htmlblock = '<p> %s trim position profile: <br> ' % (c) #<img src="profile_%s.pdf" title="trimming profile"' % (c)
+        htmlblock += '<embed src= profile_%s.pdf type="application/pdf" width="100%%" height="650px" /><br>' % (c)
         report.append( htmlblock )
+    report.append('</div><br><hr/>')
         
     #<!-- VAR7 example: ['3p','5p']; (repeat html block len(VAR7) times) --> 
     

@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-library(dplyr)
+#library(dplyr)
 library(ggplot2)
 library(ape)
 library(reshape2)
@@ -17,6 +17,10 @@ maxAggN = as.integer(args[2])
 reads_FN = paste0(out_DN, '/trimVisTmpFiles/trimviz_readData.tsv')
 seq3p_FN = paste0(out_DN, '/trimVisTmpFiles/seq3psites.txt')
 #aggFN = paste0(out_DN, '/TVheatmap.pdf')
+
+############################
+# part 1: indiv read plots #
+############################
 
 df <- read.table(file = reads_FN, comment.char = '', header=TRUE)
 #df <- read.table(file = './trimVisTmpFiles/trimviz_readData.tsv', comment.char = '', header=TRUE)
@@ -77,7 +81,11 @@ for (i in 0:floor(length(rnames)/graphchunk)){
   }
 }
 dev.off()
-print (seq3p_FN)
+
+####################
+# part 2: heatmaps #
+####################
+
 df2 <- read.table(seq3p_FN, header = T, colClasses = 'character') # columns of Ts can be interpreted as logical
 colConvert=data.frame(pattern=c('^readID$', 'CutPos', '^[gs][\\d]+$','^q[\\d]+$'), fun=1:4)
 colConvert$fun=c(as.character, as.integer, function(x){factor(x, levels=c('A', 'C','G','T','X','N'))}, as.integer)
@@ -127,7 +135,6 @@ for (prefix in c('s','q','g')){
       }
       smat = smat - zeroQual
       for (cl in which(scols)){
-        # df2[,cl][df2[,cl] == 78 | df2[,cl] == 88]=NA # not necessary, handle it in plotting function
         df2[,cl] = df2[,cl] - zeroQual
       }
     }
@@ -161,8 +168,8 @@ sreord$ord.t=1:nrow(sreord)
 #sreord$ord.t = rank(sreord$tpCutPos, sreord$ord.s, sreord$ord.q, ties.method = 'random')
 
 allres2 = merge(allres, sreord[,c('readID', 'ord.t')], all.x=T, by='readID')
-
 allres2$q[allres2$s %in% c('N','X')]=NA
+
 anchorPlot <- function(x, datatype='s', clustby='s'){
   ordCol=paste0('ord.',clustby)
   ttls1 = list(s='Read sequence; ', g='Genomic sequence; ', q='Base-quality; ', t='Trim location; ')
@@ -202,3 +209,25 @@ if (length(absentData) > 0 && absentData == 'g'){
     grid.arrange(anchorPlot(allres2, 's','g'), anchorPlot(allres2, 'q','g'), anchorPlot(allres2, 'g','g'), ncol=3)
   dev.off()
 }
+
+###############################
+# part 3: trm-length profiles #
+###############################
+
+df3=df2[,c('readID','tpCutPos')] 
+df3$fpCutPos=0 # <----TODO: add real 5' cut pos if not zero
+df3=df3[order(df3$tpCutPos),]
+df3$vert=1:nrow(df3)
+pdf()
+grL <- ggplot(df3) + geom_segment(aes(x=fpCutPos, y=vert, xend=tpCutPos, yend=vert), size=1) + 
+  theme_bw() + theme(panel.grid.minor = element_blank(),
+                     panel.grid.major = element_blank())+
+                     #axis.text.y=element_blank(),
+                     #axis.ticks.y=element_blank(),
+                     #axis.title.y=element_blank()) + 
+  ylab(label = 'number of reads') + xlab(label = 'position on raw read')
+
+pdf(paste0(out_DN, '/profile_3pcut.pdf'), width = 6, height = 6)
+print (grL)
+dev.off()
+
