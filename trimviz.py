@@ -11,7 +11,7 @@
 
 __author__ = 'stuartarcher'
 
-import getopt, subprocess, random, re, sys, os, tempfile, time, gzip, pipes, pysam
+import getopt, subprocess, random, re, sys, os, gzip, pipes, pysam  #tempfile, time
 
 # An iterator for fastq files.  Takes a open file object.  Returns a dict
 class fastq:
@@ -307,7 +307,7 @@ def main():
             print >> fout, 'sleep 1'
             print >> fout, cmd4B
         print ('searching bam file using samtools and fgrep...')
-        time.sleep(1)
+        #time.sleep(1)
         sout = subprocess.check_output(['bash', out_DN + '/trimVisTmpFiles/tmp_bash6.sh'])
         print ('getting fasta file...')
         # shove fasta file into giant dictionary
@@ -818,9 +818,9 @@ def print_help ():
     seqtk
     zcat
     python libs:
-    getopt, subprocess, random, re, sys, os, tempfile, time, gzip, pipes, pysam
+    getopt, subprocess, random, re, sys, os, gzip, pipes, pysam
     R libs:
-    ggplot2,dplyr,ape,reshape2,gridExtra
+    ggplot2,ape,reshape2,gridExtra
     '''
 
 def makeReport(mode, out_DN, trimClassTbl, lenpre, orig_FN1, proc_FN1, orig_FN2, proc_FN2, bam_FN, gfasta_FN, PDF_FNs=[], TPCs=[]):      
