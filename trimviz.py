@@ -781,8 +781,8 @@ def print_help ():
     visualize the soft-clipping of reads by an aligner.
     
     Usage:
-    ./trimsvis.py FQ -o/-O output_dir -u untrimmed.fq.gz -t trimmed.fq.gz [ -b align.bam -g reference.fa ]
-    ./trimsvis.py SC -o/-O output_dir -u unaligned.fq.gz -b align.bam -g reference.fa
+    ./trimvis.py FQ -o/-O output_dir -u untrimmed.fq.gz -t trimmed.fq.gz [ -b align.bam -g reference.fa ]
+    ./trimvis.py SC -o/-O output_dir -u unaligned.fq.gz -b align.bam -g reference.fa
     
     trimsvis.py FQ        Fastq-fastq comparison. Bam file and genome fasta file can be optionally given to view the mapping outcomes for trimmed reads.
     trimsvis.py SC        Treat soft clipping as the trimming of interest. Bam and genome fasta file are required, with only one fastq file.
@@ -845,7 +845,12 @@ def makeReport(mode, out_DN, trimClassTbl, lenpre, orig_FN1, proc_FN1, orig_FN2,
         .right-div {
             margin-left: 45%;
         }
+        .verdanafont {
+            font-family:'verdana'
+        }
+        h100 { font-family:"Courier New"; display:inline }
     </style>
+    <div class="verdanafont">
     ''')
     
     report.append( '<h1> Trimviz trimming summary: %s </h1> <br><hr/><br><div>' % mode )
@@ -857,7 +862,7 @@ def makeReport(mode, out_DN, trimClassTbl, lenpre, orig_FN1, proc_FN1, orig_FN2,
           'bam file':bam_FN,
           'genome fasta file':gfasta_FN}
     
-    report.append ('<br>'.join( (k + ': ' + v) for (k, v) in VAR1.items() if not v=='')  )
+    report.append ('<br>'.join( (k + ': <h100> ' + v + ' </h100> ') for (k, v) in VAR1.items() if not v=='')  )
     report.append ('<br></div><br><hr/>')
 
     htmlTbl = '''
@@ -895,7 +900,7 @@ def makeReport(mode, out_DN, trimClassTbl, lenpre, orig_FN1, proc_FN1, orig_FN2,
         htmlblock += '<br> </details> <p> <br></p>'
         report.append( htmlblock )
     
-    report.append('<br>')
+    report.append('<br></div>')
     return(''.join(report))
 
 

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+    <style>
+        table.mytable-marg{
+            border-collapse: collapse;
+        }
+        table.mytable-marg td, table.mytable-marg th{
+          border: 1px solid #ccc;
+          text-align: left;
+          padding-right: 18px; 
+          padding-left: 10px;
+          font-weight: normal
+        }
+        .left-div {
+            float: left;
+            width: 40%;
+            margin-right: 8px;
+        }
+        .right-div {
+            margin-left: 45%;
+        }
+        .verdanafont {
+            font-family:'verdana'
+        }
+        h100 { font-family:"Courier New"; display:inline }
+    </style>
+    <div class="verdanafont">
+    <h1> Trimviz trimming summary: Fastq-bam soft-clipping mode </h1> <br><hr/><br><div>Untrimmed R1 fastq file: <h100> ../tv_data/post_trimmed.fastq.gz </h100> <br>bam file: <h100> ../tv_data/alignment.bam </h100> <br>genome fasta file: <h100> ../tv_data/genome.fa </h100> <br></div><br><hr/>
+    <div class="left-div"> 
+    <h3> Summary of trimming frequency </h3>
+    <table class="mytable-marg" ><tr><th><b>Trim class</b></th><th><b>Number of reads</b></th></tr>
+    <tr><th> 3pcut </th><th> 3510 </th><tr><th> 5pcut </th><th> 8807 </th><tr><th> generated_warning </th><th> 0 </th><tr><th> indel </th><th> 1305 </th><tr><th> removed </th><th> 865 </th><tr><th> uncut </th><th> 36746 </th><tr><th><b>Tot unique</b></th><th><b>50000</b></th></tr></table><br><hr/></div>
+                   <div class="right-div"><p> 3pcut trim position profile: <br> <embed src= profile_3pcut.pdf type="application/pdf" width="100%" height="650px" /><br></div><br><hr/><hr/><details> <summary> Heatmap, reads clustered by untrimmed read sequence </summary> <br><embed src= TVheatmap_S.pdf type="application/pdf" width="100%" height="600px" /><br> </details> <p> <br></p><hr/><details> <summary> Heatmap, reads clustered by quality patterns </summary> <br><embed src= TVheatmap_Q.pdf type="application/pdf" width="100%" height="600px" /><br> </details> <p> <br></p><hr/><details> <summary> Individual read trimming, grouped by trimming class </summary> <br><embed src= indiv_reads.pdf type="application/pdf" width="100%" height="600px" /><br> </details> <p> <br></p><br>
+</div>
