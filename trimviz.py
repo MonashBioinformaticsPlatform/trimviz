@@ -134,7 +134,7 @@ def main():
             balance = False
         elif opt in ('-z', '--gzipped'):
             gzipped = True
-        elif opt in ('-w', '--read2only'):
+        elif opt in ('-e', '--read2only'):
             read2only=True
         elif opt in ('-h', '--help'):
             print_help()
@@ -633,7 +633,7 @@ def main():
     ##################################################################################            
       
     #    TODO: option for heatmaps from the 5' trimmed reads
-    runsheet={'3pcut':out_DN + '/trimVisTmpFiles/seq3psites.txt'} #, '5pcut':out_DN + '/trimVisTmpFiles/seq5psites.txt'}
+    runsheet={'3pcut':out_DN + '/trimVisTmpFiles/seq3psites.txt', '5pcut':out_DN + '/trimVisTmpFiles/seq5psites.txt'}
     difflens = 0
     for cls, clsfile in runsheet.items():
         with open(clsfile, 'w') as fout:

@@ -5,7 +5,7 @@ for help and dependencies:
 
 `python ./trimviz.py -h`
 
-\
+<br>
 
 ### Quickstart:
 
@@ -15,7 +15,7 @@ for help and dependencies:
 
 [Example report - FQ mode](http://MonashBioinformaticsPlatform.github.io/trimviz/example_reports/tvFQ_simple/trimvis_report.html)
 
-\
+<br>
 
 **fastq-bam comparison (soft-clipping analysis):**
 
@@ -23,7 +23,7 @@ for help and dependencies:
 
 [Example report - SC mode](http://MonashBioinformaticsPlatform.github.io/trimviz/example_reports/tvSC/trimvis_report.html)
 
-\
+<br>
 
 **fastq-fastq comparison (trimming analysis) with downstream alignment context:**
 
@@ -31,12 +31,11 @@ for help and dependencies:
 
 [Example report - FQ + bam mode](http://MonashBioinformaticsPlatform.github.io/trimviz/example_reports/tvFQ_withbam/trimvis_report.html)
 
-\
+<br>
 
-**Note on paired-end reads** 
-If the fastq file contains Read 2s, set the `-e/--read2only` flag so that trimviz knows to extract the read 2 alignment from the bam file.
+**Note on paired-end reads: **  if the fastq file is Read 2, set the `-e/--read2only` flag so that trimviz knows to extract the Read 2 alignment from the bam file.
 
-\
+<br>
 
 ### Command-line arguments:
 
@@ -81,15 +80,15 @@ visualize the soft-clipping of reads by an aligner.
     -h/--help:            Print help
 ```
 
-\
+<br>
 
 ### Dependencies:
 
 **Command-line programs:**
 
-Rscript \
-seqtk \
-zcat \
+Rscript <br>
+seqtk <br>
+zcat <br>
 
 
 **python libraries:**
