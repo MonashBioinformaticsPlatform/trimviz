@@ -27,25 +27,29 @@ df <- read.table(file = reads_FN, comment.char = '', header=TRUE)
 graphchunk = 5
 rnames = unique(df$read)
 maxLen =  max( df$position )
-if (ncol(df) == 6){
+# if all colnames are standard, it means there is no adapter column
+ad_cols = ! (colnames(df) %in% c('read', 'position', 'seq', 'qual', 'fp_cutoff', 'tp_cutoff','trim_class','genomic_seq'))
+if (sum(ad_cols) == 0){
   df$dummy_adapter=0
+  ad_cols = c(ad_cols, T)
 }
   
-for (col in (7:ncol(df))){
+for (col in (which(ad_cols))){
   df[df[,col]==0,col] = NA  # set 0 to NA to colour black
 }
 
 # choose first adapter for graph (col 7)
-df['consec_adapt_residues'] = as.numeric(df[,7]) 
+df['consec_adapt_residues'] = as.numeric(df[,which(ad_cols)[1]]) 
 df$seq=as.character(df$seq)
+
 genSeq=F
 if ('genomic_seq' %in% colnames(df)){
   df$genomic_seq = as.character(df$genomic_seq)
   genSeq=T
-  
 }
 pdf(paste0(out_DN, '/indiv_reads.pdf'), width = 14, height = 8)
 maxcol=max(df$consec_adapt_residues, na.rm = T)
+maxQual = max(df$qual)
 for (i in 0:floor(length(rnames)/graphchunk)){
   tograph = rnames[((i*graphchunk)+1):(i*graphchunk+graphchunk)]
   temp = df[df$read %in% tograph,]
@@ -57,11 +61,12 @@ for (i in 0:floor(length(rnames)/graphchunk)){
       geom_rect(data= temp, aes(xmax = tp_cutoff-0.5, xmin = fp_cutoff-0.5, ymin = -12, ymax = max(qual)+10), size=0.01, colour = 'white', fill = 'white') +
       geom_hline(data = data.frame(yint=c(0:5)*10), aes( yintercept = yint), colour = "#DDDDDD", size=0.5) +
       geom_line() + geom_point() + 
+      scale_y_continuous(breaks = seq(0,40, by=10)) +
       geom_text(data=temp, mapping=aes(x=position, y=-4, label=seq, colour=consec_adapt_residues), size=2.7, fontface="bold") +
       scale_colour_gradient(low="blue", high="red", na.value = "black") +
       geom_vline(aes(xintercept = fp_cutoff-0.5), col="red") +
       geom_vline(aes(xintercept = tp_cutoff-0.5), col="blue") +
-      facet_grid(read ~ .) +
+      facet_grid(read + trim_class ~ .) +
       theme_bw() +
       theme(panel.grid.minor = element_blank(), 
             panel.grid.major = element_blank(), 
@@ -73,7 +78,8 @@ for (i in 0:floor(length(rnames)/graphchunk)){
     gr <- gr +  
       geom_text(data=temp, mapping=aes(x=position, y=-10.5, label=genomic_seq), col='black', size=2.7) +
       geom_text(data=temp, mapping=aes(x=position, y=-8.3, label=ifelse(genomic_seq==seq,' ', '*')), size=3.5, fontface="bold", col='red') + 
-      coord_cartesian(ylim=c(-10.8, max(temp$qual)+5), xlim=c(0,maxLen))
+      coord_cartesian(ylim=c(-10.8, max(temp$qual)+5), xlim=c(0,maxLen)) +
+      geom_text(data = data.frame(lab = c('read:','ref:'), y=c(-3.5, -10)), aes(y=y, label=lab), x=-0.2, size=3.5, hjust=1, fontface="bold")
     } else {
       gr <- gr + coord_cartesian(ylim=c(-8, max(temp$qual)+5), xlim=c(0,maxLen))
     }

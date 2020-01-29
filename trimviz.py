@@ -595,7 +595,7 @@ def main():
     
     tempfname = out_DN + '/trimVisTmpFiles/trimviz_readData.tsv'
     with open (tempfname,'w') as fout:
-        line = ['read', 'position', 'seq', 'qual', 'fp_cutoff', 'tp_cutoff']
+        line = ['read', 'position', 'seq', 'qual', 'fp_cutoff', 'tp_cutoff','trim_class']
         line.extend(madapt)
         if not bam_FN == '':
             line.append('genomic_seq')
@@ -604,8 +604,9 @@ def main():
         for r in toPlot:
             j+=1
             rdat=both[r]
+            trim_class = ','.join([cls for cls in rid_class if r in rid_class[cls]])
             for i in range(0, len(rdat[2])):
-                line = [ str(x) for x in [   r, (i+1), rdat[2][i], ord(rdat[3][i])-34, rdat[4], rdat[5]   ]  ]
+                line = [ str(x) for x in [   r, (i+1), rdat[2][i], ord(rdat[3][i])-34, rdat[4], rdat[5], trim_class ]  ]
                 for ad in range(0, len(madapt)):
                     if 6+ad >= len(rdat):
                         print "it is rdat!"
