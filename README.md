@@ -25,9 +25,9 @@ for help and dependencies:
 
 <br>
 
-**fastq-fastq comparison (trimming analysis) with downstream alignment context in diff mode:**
+**fastq-fastq comparison (trimming analysis) with downstream alignment context in diff mode and adapter highlighting:**
 
-`python path/to/trimviz.py FQ -o tv_outdir -u untrimmed_R1.fastq.gz -t trimmed_R1.fastq.gz -b aligned.bam -g path/to/reference_fasta.fa -d`
+`python path/to/trimviz.py FQ -o tv_outdir -u untrimmed_R1.fastq.gz -t trimmed_R1.fastq.gz -b aligned.bam -g path/to/reference_fasta.fa -d -a AGATCGGAAGAGCACACGTCTGAAC`
 
 [Example report - FQ + bam mode](http://MonashBioinformaticsPlatform.github.io/trimviz/example_reports/tvFQ_withbam/trimvis_report.html)
 
