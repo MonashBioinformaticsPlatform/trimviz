@@ -11,7 +11,7 @@ for help and dependencies:
 
 **fastq-fastq comparison (trimming analysis):**
 
-`python path/to/trimviz.py FQ -o tv_outdir -u untrimmed.fastq.gz -t trimmed.fastq.gz`
+`python path/to/trimviz.py FQ -o tv_outdir -u untrimmed_R1.fastq.gz -t trimmed_R1.fastq.gz`
 
 [Example report - FQ mode](http://MonashBioinformaticsPlatform.github.io/trimviz/example_reports/tvFQ_simple/trimvis_report.html)
 
@@ -19,7 +19,7 @@ for help and dependencies:
 
 **fastq-bam comparison (soft-clipping analysis):**
 
-`python path/to/trimviz.py SC -o tv_outdir -u aligner_input.fastq.gz -b aligned.bam -g path/to/reference_fasta.fa`
+`python path/to/trimviz.py SC -o tv_outdir -u aligner_input_R1.fastq.gz -b aligned.bam -g path/to/reference_fasta.fa`
 
 [Example report - SC mode](http://MonashBioinformaticsPlatform.github.io/trimviz/example_reports/tvSC/trimvis_report.html)
 
@@ -27,7 +27,7 @@ for help and dependencies:
 
 **fastq-fastq comparison (trimming analysis) with downstream alignment context:**
 
-`python path/to/trimviz.py FQ -o tv_outdir -u untrimmed.fastq.gz -t trimmed.fastq.gz -b aligned.bam -g path/to/reference_fasta.fa`
+`python path/to/trimviz.py FQ -o tv_outdir -u untrimmed_R1.fastq.gz -t trimmed_R1.fastq.gz -b aligned.bam -g path/to/reference_fasta.fa`
 
 [Example report - FQ + bam mode](http://MonashBioinformaticsPlatform.github.io/trimviz/example_reports/tvFQ_withbam/trimvis_report.html)
 
@@ -39,19 +39,19 @@ for help and dependencies:
 
 ### Command-line arguments:
 
-trimviz takes a random sample of trimmed reads from a fastq file,
-looks up the same reads in an untrimmed fastq file and visualises the
+Trimviz takes a random sample of untrimmed reads from a fastq file,
+looks up the same reads in an trimmed fastq file and visualises the
 trimmed reads with respect to surrounding base call quality values and
-adapter sequence. In soft-clipping mode, trimviz will instead
+adapter sequence. In soft-clipping mode, Trimviz will instead
 visualize the soft-clipping of reads by an aligner.
 
 ```   
     Usage:
-    ./trimvis.py FQ -o/-O output_dir -u untrimmed.fq.gz -t trimmed.fq.gz [ -b align.bam -g reference.fa ]
-    ./trimvis.py SC -o/-O output_dir -u unaligned.fq.gz -b align.bam -g reference.fa
+    ./trimviz.py FQ -o/-O output_dir -u untrimmed.fq.gz -t trimmed.fq.gz [ -b align.bam -g reference.fa ]
+    ./trimviz.py SC -o/-O output_dir -u unaligned.fq.gz -b align.bam -g reference.fa
     
-    trimsvis.py FQ        Fastq-fastq comparison. Bam file and genome fasta file can be optionally given to view the mapping outcomes for trimmed reads.
-    trimsvis.py SC        Treat soft clipping as the trimming of interest. Bam and genome fasta file are required, with only one fastq file.
+    trimsviz.py FQ        Fastq-fastq comparison. Bam file and genome fasta file can be optionally given to view the mapping outcomes for trimmed reads.
+    trimsviz.py SC        Treat soft clipping as the trimming of interest. Bam and genome fasta file are required, with only one fastq file.
     
     options:
     -o/--out_dir          Directory for output. If it already exists, an error will be generated.
@@ -64,8 +64,8 @@ visualize the soft-clipping of reads by an aligner.
     -g/--genome_fasta     Fasta file of genome sequence (required if using .bam alignment)
     -c/--classes          [uncut,3pcut,removed,5pcut] Comma-separated trim-classes to visualise in individual read visualisation.
                           One/several of 'uncut','5pcut','3pcut','removed','generated_warning','indel'
-    -a/--adapt:           ['AAAAAATGGAATTCTCGGGTGCCAAGGAACTCCAGTCACCGTTCAGAGTTCTACAGTCCGACGATC'] comma-separated adapter sequences to highlight
-    -A/--adaptfile        Text file containing adapter sequences
+    -a/--adapt:           comma-separated adapter sequences to highlight (multiple adapters not supported yet - defaults to first adapter in list)
+    -A/--adaptfile        Text file containing adapter sequences (multiple adapters not supported yet - defaults to first adapter in list)
     -n/--sample_size      [50000] internal parameter: max reads to subsample in file (should be >> -m and -v, especially if only a small proportion are trimmed)
     -v/--nvis             [20] number of reads in each category (or in total if -R is set) to use for detailed individual plots
     -w/--heatmap_reads    [200] number of reads to plot in heatmaps
@@ -89,7 +89,7 @@ visualize the soft-clipping of reads by an aligner.
 Rscript <br>
 seqtk <br>
 zcat <br>
-
+fgrep <br>
 
 **python libraries:**
 
@@ -99,5 +99,4 @@ getopt, subprocess, random, re, sys, os, gzip, pipes, pysam
 
 ggplot2, ape, reshape2, gridExtra
 
-
-
+Tested with R3.6.0 and Python 2.7.6

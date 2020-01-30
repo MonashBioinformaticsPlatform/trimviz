@@ -44,7 +44,7 @@ def main():
     else:
         softClipping = True
         
-    options, remainder = getopt.getopt(sys.argv[2:], 'u:t:U:T:o:O:b:g:c:n:v:w:a:A:f:g:r:s:Rzeh', ['untrimmed=',
+    options, remainder = getopt.getopt(sys.argv[2:], 'u:t:U:T:o:O:b:g:c:n:v:w:a:A:f:g:r:s:kRzeh', ['untrimmed=',
                                                                                    'trimmed=',
                                                                                    'untrimmed_r2=',
                                                                                    'trimmed_r2=',
@@ -61,6 +61,7 @@ def main():
                                                                                    'agg_flank='
                                                                                    'rid_file='
                                                                                    'seed=',
+                                                                                   'skim',
                                                                                    'representative',
                                                                                    'gzipped',
                                                                                    'read2only',
@@ -70,6 +71,7 @@ def main():
     aggGr_FN = 'aggPlot.pdf'
     tblOut_FN = 'trimVisData.tsv'
     class_opts = ['uncut','5pcut','3pcut','removed','indel','generated_warning']  # not all reads generating warning are included (many are not plottable). indel just for debugging purposes
+    skim=False
     
     # set defaults
     orig_FN1 = str('')  # u   'untrimmed='
@@ -130,6 +132,8 @@ def main():
             rid_FN = arg    # t
         elif opt in ('-s', '--seed'):
             rseed = int(arg)
+        elif opt in ('-k', '--skim'):
+            skim = True  # <-------------------- TO DO
         elif opt in ('-R', '--representative'):
             balance = False
         elif opt in ('-z', '--gzipped'):
@@ -633,35 +637,40 @@ def main():
     #   MAIN    part 6: prepare aggregate / trim-anchored read matrices
     ##################################################################################            
       
-    #    TODO: option for heatmaps from the 5' trimmed reads
     runsheet={'3pcut':out_DN + '/trimVisTmpFiles/seq3psites.txt', '5pcut':out_DN + '/trimVisTmpFiles/seq5psites.txt'}
     difflens = 0
     for cls, clsfile in runsheet.items():
         with open(clsfile, 'w') as fout:
             bs = range(aggFlank*2+1)
             if bam_FN == '':
-                print >> fout, '\t'.join(['readID', 'tpCutPos'] + ['s'+str(i+1) for i in bs] + ['q'+str(i+1) for i in bs])
+                print >> fout, '\t'.join(['readID', 'fpCutPos', 'tpCutPos'] + ['s'+str(i+1) for i in bs] + ['q'+str(i+1) for i in bs])
             else:
-                print >> fout, '\t'.join(['readID', 'tpCutPos'] + ['s'+str(i+1) for i in bs] + ['q'+str(i+1) for i in bs] + ['g'+str(i+1) for i in bs])
+                print >> fout, '\t'.join(['readID', 'fpCutPos', 'tpCutPos'] + ['s'+str(i+1) for i in bs] + ['q'+str(i+1) for i in bs] + ['g'+str(i+1) for i in bs])
             for r in rid_class[cls]:
-                    rdat=both[r]                                # both[id] = 0-postSeq 1-postQual 2-preSeq 3-preQual ("post" is the "-t" fastq file; "pre" is the "-u" fastq file)
-                    ps=padstr(rdat[2], rdat[5]-1, aggFlank, r)  # pre-seq; 3' trim site (0-based so should not exceed len(rdat[2]) ); flanking seq = 20. returns list
-                    pq=padstr(rdat[3], rdat[5]-1, aggFlank, r)  # pad quals with 'N's which are not legit qual characters (highest is 'J')
-                    if bam_FN != '':                      
-                        if r in bamInfo:
-                            gSeg=bamInfo[r][0]
-                        else:
-                            gSeg='N'*len(rdat[2])
-                        gs=padstr(gSeg, rdat[5]-1, aggFlank, r) 
-                        if softClipping:
-                            if not len (gSeg) == len (rdat[2]): #if SC, bam align len should match -u file
-                                difflens += 1
-                                rid_class['generated_warning'].extend([r])
-                        elif not len (gSeg) == len (rdat[2]):    # gSeg has already been adjusted in length to expand and match the -u read, if there was trimming between -u and -t
-                            difflens += 1
-                        print >> fout, '\t'.join([r, str(rdat[5])] + ps + [str(ord(x)) for x in pq] + gs)
+                rdat=both[r] # both[id] = [0]-postSeq [1]-postQual [2]-preSeq [3]-preQual ("post" is the "-t" fastq file; "pre" is the "-u" fastq file)
+                             # [4] 5' cut site, dist from start of raw read [5] 3' cut site, dist from START??? of raw read 
+                if cls == '3pcut':
+                    offset = rdat[5]-1
+                elif cls == '5pcut':
+                    ## <----- check for out-by-one
+                    offset = rdat[4]-1
+                ps=padstr(rdat[2], offset, aggFlank, r)  # pre-seq; 3' trim site (0-based so should not exceed len(rdat[2]) ); flanking seq = 20. returns list
+                pq=padstr(rdat[3], offset, aggFlank, r)  # pad quals with 'N's which are not legit qual characters (highest is 'J')
+                if bam_FN != '':                      
+                    if r in bamInfo:
+                        gSeg=bamInfo[r][0]
                     else:
-                        print >> fout, '\t'.join([r, str(rdat[5])] + ps + [str(ord(x)) for x in pq])  # N's -> 78. Highest legit q-val is 'J' (-> 74)
+                        gSeg='N'*len(rdat[2])
+                    gs=padstr(gSeg, offset, aggFlank, r) 
+                    if softClipping:
+                        if not len (gSeg) == len (rdat[2]): #if SC, bam align len should match -u file
+                            difflens += 1
+                            rid_class['generated_warning'].extend([r])
+                    elif not len (gSeg) == len (rdat[2]):    # gSeg has already been adjusted in length to expand and match the -u read, if there was trimming between -u and -t
+                        difflens += 1
+                    print >> fout, '\t'.join([r, str(rdat[4]-1), str(rdat[5]-1)] + ps + [str(ord(x)) for x in pq] + gs)
+                else:
+                    print >> fout, '\t'.join([r, str(rdat[4]-1), str(rdat[5]-1)] + ps + [str(ord(x)) for x in pq])  # N's -> 78. Highest legit q-val is 'J' (-> 74)
     
     if difflens > 0:
         if softClipping:
@@ -689,20 +698,13 @@ def main():
     
     ###########################
     # << MAKE HTML REPORT   >>#
-    ###########################
-    cmd7 = 'python ./' #os.curdir
-
-    #cmd6 = 'Rscript ' +'./graph_ts.R '+ tempfname + ' ' + out_DN + '/' + gr_FN + ' ' + out_DN +'/' + aggGr_FN + ' ' + str(maxAggN)  #os.curdir
-    print (cmd6)
-    rout = subprocess.check_output(cmd6, shell=True)
-    
+    ###########################   
     mode = "Fastq-fastq comparison mode, with alignment"
     if softClipping:
         mode = "Fastq-bam soft-clipping mode"
     elif bam_FN == '':
         mode = "Fastq-fastq comparison mode"
-    report = makeReport(mode, out_DN, trimClassTbl, len(pre), orig_FN1, proc_FN1, orig_FN2, proc_FN2, bam_FN, gfasta_FN,
-                        PDF_FNs=['TVheatmap_S.pdf','TVheatmap_Q.pdf','indiv_reads.pdf'], TPCs=['3pcut'])
+    report = makeReport(mode, out_DN, trimClassTbl, len(pre), orig_FN1, proc_FN1, orig_FN2, proc_FN2, bam_FN, gfasta_FN)
     with open (out_DN+'/trimvis_report.html', 'w') as fout:
         print >> fout, report
    
@@ -775,18 +777,19 @@ def flagDecoder (flag):
     
 def print_help ():
     print '''
-    trimviz takes a random sample of trimmed reads from a fastq file,
+    Trimviz takes a random sample of trimmed reads from a fastq file,
     looks up the same reads in an untrimmed fastq file and visualises the
     trimmed reads with respect to surrounding base call quality values and
-    adapter sequence. In soft-clipping mode, trimviz will instead
-    visualize the soft-clipping of reads by an aligner.
+    adapter sequence. In soft-clipping mode, Trimviz will instead
+    visualize the soft-clipping of reads by an aligner. To examine Read 2
+    from paired-end data, set the `-e/--read2only` flag.
     
     Usage:
-    ./trimvis.py FQ -o/-O output_dir -u untrimmed.fq.gz -t trimmed.fq.gz [ -b align.bam -g reference.fa ]
-    ./trimvis.py SC -o/-O output_dir -u unaligned.fq.gz -b align.bam -g reference.fa
+    ./trimviz.py FQ -o/-O output_dir -u untrimmed_R1.fq.gz -t trimmed_R1.fq.gz [ -b align.bam -g reference.fa ]
+    ./trimviz.py SC -o/-O output_dir -u unaligned_R1.fq.gz -b align.bam -g reference.fa
     
-    trimsvis.py FQ        Fastq-fastq comparison. Bam file and genome fasta file can be optionally given to view the mapping outcomes for trimmed reads.
-    trimsvis.py SC        Treat soft clipping as the trimming of interest. Bam and genome fasta file are required, with only one fastq file.
+    trimsviz.py FQ        Fastq-fastq comparison. Bam file and genome fasta file can be optionally given to view the mapping outcomes for trimmed reads.
+    trimsviz.py SC        Treat soft clipping as the trimming of interest. Bam and genome fasta file are required, with only one fastq file.
     
     options:
     -o/--out_dir          Directory for output. If it already exists, an error will be generated.
@@ -799,7 +802,7 @@ def print_help ():
     -g/--genome_fasta     Fasta file of genome sequence (required if using .bam alignment)
     -c/--classes          [uncut,3pcut,removed,5pcut] Comma-separated trim-classes to visualise in individual read visualisation.
                           One/several of 'uncut','5pcut','3pcut','removed','generated_warning','indel'
-    -a/--adapt:           ['AAAAAATGGAATTCTCGGGTGCCAAGGAACTCCAGTCACCGTTCAGAGTTCTACAGTCCGACGATC'] comma-separated adapter sequences to highlight
+    -a/--adapt:           comma-separated adapter sequences to highlight (multiple adapters not supported yet - defaults to first adapter in list)
     -A/--adaptfile        Text file containing adapter sequences
     -n/--sample_size      [50000] internal parameter: max reads to subsample in file (should be >> -m and -v, especially if only a small proportion are trimmed)
     -v/--nvis             [20] number of reads in each category (or in total if -R is set) to use for detailed individual plots
@@ -824,7 +827,7 @@ def print_help ():
     ggplot2,ape,reshape2,gridExtra
     '''
 
-def makeReport(mode, out_DN, trimClassTbl, lenpre, orig_FN1, proc_FN1, orig_FN2, proc_FN2, bam_FN, gfasta_FN, PDF_FNs=[], TPCs=[]):      
+def makeReport(mode, out_DN, trimClassTbl, lenpre, orig_FN1, proc_FN1, orig_FN2, proc_FN2, bam_FN, gfasta_FN):     
     report=list()                                                                            
     report.append ('''<!DOCTYPE html>
     <style>
@@ -838,13 +841,14 @@ def makeReport(mode, out_DN, trimClassTbl, lenpre, orig_FN1, proc_FN1, orig_FN2,
           padding-left: 10px;
           font-weight: normal
         }
-        .left-div {
-            float: left;
-            width: 40%;
-            margin-right: 8px;
+        .inline-2perline{
+            display: inline-block;   
+            width: 49%;
         }
-        .right-div {
-            margin-left: 45%;
+        .full-div {
+            vertical-align: top
+            margin-left: 8px;
+            margin-right: 8px;
         }
         .verdanafont {
             font-family:'verdana'
@@ -864,44 +868,59 @@ def makeReport(mode, out_DN, trimClassTbl, lenpre, orig_FN1, proc_FN1, orig_FN2,
           'genome fasta file':gfasta_FN}
     
     report.append ('<br>'.join( (k + ': <h100> ' + v + ' </h100> ') for (k, v) in VAR1.items() if not v=='')  )
-    report.append ('<br></div><br><hr/>')
+    report.append ('''<br></div>
+                   <br>
+                   <hr/>''')
 
-    htmlTbl = '''
-    <div class="left-div"> 
+    htmlTbl = ''' 
     <h3> Summary of trimming frequency </h3>
     <table class="mytable-marg" ><tr><th><b>Trim class</b></th><th><b>Number of reads</b></th></tr>
     '''
     for (cls, ncls) in trimClassTbl.items():
         htmlTbl += '<tr><th> %s </th><th> %d </th>' % (cls , ncls)
     htmlTbl += '<tr><th><b>Tot unique</b></th><th><b>%d</b></th></tr>' % (lenpre)     
-    htmlTbl += '</table><br><hr/>'
+    htmlTbl += '''</table>
+    <br><hr/>'''
     report.append (htmlTbl)
-    report.append ('''</div>
-                   <div class="right-div">''')
-    
-    for c in TPCs:
-        #htmlblock = '<p> %s trim position profile: <img src="%s_hist.png" title="trimming profile"' % (c,c)
-        #htmlblock += 'alt="" style="display: block; margin: auto;" /></p><br>'
-        htmlblock = '<p> %s trim position profile: <br> ' % (c) #<img src="profile_%s.pdf" title="trimming profile"' % (c)
-        htmlblock += '<embed src= profile_%s.pdf type="application/pdf" width="100%%" height="650px" /><br>' % (c)
+    report.append ('''<p> <div class="inline-2perline">''')
+    if os.path.isfile(out_DN + '/profile_3pcut.pdf'):
+        htmlblock = '3p trim position profile: <br><embed src= profile_3pcut.pdf type="application/pdf" width="100%" height="650px" /><br>'
+        htmlblock += '''
+        </div>
+        <div class="inline-2perline">
+        '''
         report.append( htmlblock )
-    report.append('</div><br><hr/>')
+    if os.path.isfile(out_DN + '/profile_5pcut.pdf'):
+        htmlblock = '5p trim position profile: <br><embed src= profile_5pcut.pdf type="application/pdf" width="100%" height="650px" /><br>'
+        report.append( htmlblock )
+    report.append('''
+                  </div></p><br><hr/>
+                  <div>''')
         
     #<!-- VAR7 example: ['3p','5p']; (repeat html block len(VAR7) times) --> 
     
     
-    pdfs = {'TVheatmap_S.pdf':'Heatmap, reads clustered by untrimmed read sequence',
-            'TVheatmap_Q.pdf':'Heatmap, reads clustered by quality patterns',
-            'TVheatmap_G.pdf':'Heatmaps, clustered by local reference sequence',
-            'indiv_reads.pdf':'Individual read trimming, grouped by trimming class'}
+    pdfs = [['TVheatmap_S_3p.pdf','Heatmap, 3\'-trimmed reads clustered by untrimmed read sequence'],
+            ['TVheatmap_Q_3p.pdf','Heatmap, 3\'-trimmed reads clustered by quality patterns'],
+            ['TVheatmap_G_3p.pdf','Heatmaps, 3\'-trimmed reads clustered by local reference sequence'],
+            ['TVheatmap_S_5p.pdf','Heatmap, 5\'-trimmed reads clustered by untrimmed read sequence'],
+            ['TVheatmap_Q_5p.pdf','Heatmap, 5\'-trimmed reads clustered by quality patterns'],
+            ['TVheatmap_G_5p.pdf','Heatmaps, 5\'-trimmed reads clustered by local reference sequence'],
+            ['indiv_reads.pdf','Individual read trimming, grouped by trimming class']]
  
-    for (fn) in PDF_FNs:
-        htmlblock = '<hr/><details> <summary> %s </summary> <br>' % (pdfs[fn])
-        htmlblock += '<embed src= %s type="application/pdf" width="100%%" height="600px" />' % (fn)
-        htmlblock += '<br> </details> <p> <br></p>'
-        report.append( htmlblock )
+    for fn_descr in pdfs:
+        if os.path.isfile(out_DN + '/' + fn_descr[0]):
+            htmlblock = '<hr/><details> <summary> %s </summary> <br>' % fn_descr[1]
+            htmlblock += '<embed src= %s type="application/pdf" width="100%%" height="600px" />' % fn_descr[0]
+            htmlblock += '''<br> </details>
+            <br>
+            '''
+            report.append( htmlblock )
     
-    report.append('<br></div>')
+    report.append('''
+                  </div>
+                  <hr/>
+                  </div> <br><br>''')
     return(''.join(report))
 
 
