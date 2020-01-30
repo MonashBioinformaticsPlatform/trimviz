@@ -794,8 +794,8 @@ def flagDecoder (flag):
     
 def print_help ():
     print '''
-    Trimviz takes a random sample of trimmed reads from a fastq file,
-    looks up the same reads in an untrimmed fastq file and visualises the
+    Trimviz takes a random sample of untrimmed reads from a fastq file,
+    looks up the same reads in a trimmed fastq file and visualises the
     trimmed reads with respect to surrounding base call quality values and
     adapter sequence. In soft-clipping mode, Trimviz will instead
     visualize the soft-clipping of reads by an aligner. To examine Read 2
@@ -821,7 +821,7 @@ def print_help ():
                           One/several of 'uncut','5pcut','3pcut','removed','generated_warning','indel'
     -a/--adapt:           comma-separated adapter sequences to highlight (multiple adapters not supported yet - defaults to first adapter in list)
     -A/--adaptfile        Text file containing adapter sequences (multiple adapters not supported yet - defaults to first adapter in list)
-    -n/--sample_size      [50000] internal parameter: max reads to subsample in file (should be >> -m and -v, especially if only a small proportion are trimmed)
+    -n/--sample_size      [50000] internal parameter: max reads to subsample in file (should be >> -w and -v, especially if only a small proportion are trimmed)
     -v/--nvis             [20] number of reads in each category (or in total if -R is set) to use for detailed individual plots
     -w/--heatmap_reads    [200] number of reads to plot in heatmaps
     -f/--agg_flank        [20] number of flanking nucleotides around trim point to plot in heatmaps 
@@ -880,13 +880,13 @@ def makeReport(mode, out_DN, trimClassTbl, lenpre, orig_FN1, proc_FN1, orig_FN2,
     
     report.append( '<h1> Trimviz trimming summary: %s </h1> <br><hr/><br><div>' % mode )
     
-    VAR1={'Untrimmed R1 fastq file':orig_FN1,
-          'Trimmed R1 fastq file':proc_FN1,
-          'Untrimmed R2 fastq file':orig_FN2,
-          'Trimmed R2 fastq file':proc_FN2,
-          'bam file':bam_FN,
-          'genome fasta file':gfasta_FN}
-    
+    VAR1={'-u (input fastq file)':orig_FN1,
+          '-t (trimmed fastq file)':proc_FN1,
+          '-U (input R2 fastq file)':orig_FN2,
+          '-T (trimmed R2 fastq file)':proc_FN2,
+          '-b (bam file)':bam_FN,
+          '-g (genome fasta file)':gfasta_FN}
+    report.append ('<br> <h3> Input files: </h3>')
     report.append ('<br>'.join( (k + ': <h100> ' + v + ' </h100> ') for (k, v) in VAR1.items() if not v=='')  )
     report.append ('''<br></div>
                    <br>
