@@ -44,7 +44,7 @@ def main():
     else:
         softClipping = True
         
-    options, remainder = getopt.getopt(sys.argv[2:], 'u:t:U:T:o:O:b:g:c:n:v:w:a:A:f:g:r:s:kRzeh', ['untrimmed=',
+    options, remainder = getopt.getopt(sys.argv[2:], 'u:t:U:T:o:O:b:g:c:n:v:w:a:A:f:g:r:s:kRzedh', ['untrimmed=',
                                                                                    'trimmed=',
                                                                                    'untrimmed_r2=',
                                                                                    'trimmed_r2=',
@@ -65,13 +65,13 @@ def main():
                                                                                    'representative',
                                                                                    'gzipped',
                                                                                    'read2only',
+                                                                                   'diff',
                                                                                    'help'])
 
     gr_FN = 'indivReadPlots.pdf'
     aggGr_FN = 'aggPlot.pdf'
     tblOut_FN = 'trimVisData.tsv'
     class_opts = ['uncut','5pcut','3pcut','removed','indel','generated_warning']  # not all reads generating warning are included (many are not plottable). indel just for debugging purposes
-    skim=False
     
     # set defaults
     orig_FN1 = str('')  # u   'untrimmed='
@@ -91,9 +91,11 @@ def main():
     adapt_FN = str('')  # A   'adapt_file='  # <------- TODO make use of this parameter
     rid_FN = str('')    # r   'rid_file='
     rseed = 1           # s   'seed='
+    skim=False          # k   'skim'
     balance = True      # R   'representative'
     gzipped = True      # z   'gzipped'
     read2only = False   # e   'read2only'   # <------- TODO paired-end mode
+    gdiff = False       # d   'diff'
     help = False        # h   'help'
     
     for opt, arg in options:
@@ -140,6 +142,8 @@ def main():
             gzipped = True
         elif opt in ('-e', '--read2only'):
             read2only=True
+        elif opt in ('-d', '--diff'):
+            gdiff=True
         elif opt in ('-h', '--help'):
             print_help()
             
@@ -259,13 +263,22 @@ def main():
         # split output into a temp fq file (tmpPre1_FN) and a readname list file (readIDs1_FN)
         # remove @, anything after a space in readname; append a tab char to improve fgrep specificity for bam-searching
         # note: sed 's/[ \/].*$//' messes up seqtk search of fastqs with RNs ending in /1 or /2 (but is required to search bams)
-        cmd3 = "seqtk sample -s%d %s %d | tee >(awk '1 == NR %s 4' | sed 's/@//'  | sed 's/[ ].*$//' | sed 's/$/\t/' > %s ) | gzip > %s" % (rseed,
+        if skim:
+            cmd3 = "zcat %s | head -n %d | tee >(awk '1 == NR %s 4' | sed 's/@//'  | sed 's/[ ].*$//' | sed 's/$/\t/' > %s ) | gzip > %s" % (pipes.quote(orig_FN1),
+                                                                                                                          target_n_pre*4,
+                                                                                                                          pcnt_sgn,
+                                                                                                                          readIDs1_FN,
+                                                                                                                          pipes.quote(tmpPre1_FN))
+        else:
+            cmd3 = "seqtk sample -s%d %s %d | tee >(awk '1 == NR %s 4' | sed 's/@//'  | sed 's/[ ].*$//' | sed 's/$/\t/' > %s ) | gzip > %s" % (rseed,
                                                                                                                           pipes.quote(orig_FN1),
                                                                                                                           target_n_pre,
                                                                                                                           pcnt_sgn,
                                                                                                                           readIDs1_FN,
                                                                                                                           pipes.quote(tmpPre1_FN))       
     else: # user-specified RIDs
+        if skim:
+            print "Warning: -k option over-ridden by user supplying a read-id file."
         cmd2 = "cat %s | sed 's/@//'  | sed 's/[ ].*$//' | sed 's/$/\t/' > %s" % (rid_FN, readIDs1_FN) # clean up user-specified rids for seqtk
         with open(out_DN + '/trimVisTmpFiles/tmp_bash2.sh', 'w') as fout:
             print >> fout, cmd2
@@ -336,7 +349,10 @@ def main():
     
     if not softClipping:     
         # retrieve same reads (in readIDs1_FN) from TRIMMED FQ (proc_FN1) using seqtk
-        cmd5 = "seqtk subseq %s %s | gzip > %s " % (proc_FN1, readIDs1_FN, tmpPost1_FN)
+        if skim:
+            cmd5 = "zcat %s | head -n %d | gzip > %s " % (proc_FN1, target_n_pre*4, tmpPost1_FN)
+        else:
+            cmd5 = "seqtk subseq %s %s | gzip > %s " % (proc_FN1, readIDs1_FN, tmpPost1_FN)
         with open(out_DN + '/trimVisTmpFiles/tmp_bash4.sh', 'w') as fout:
             print >> fout, cmd5
         print ('Finding the reads in trimmed fastq file using seqtk...')
@@ -360,9 +376,10 @@ def main():
                 both[id] = ['', ''] + rdat
                 #rid_class['removed'].extend([id])
         # check that post is now emptied out
-        for r in post:
-            print "WARNING: read ---- " + r + "  ---- not found in pre-trimmed data."
-            #rid_class['generated_warning'].extend([r]) # actually can't plot this (no 'pre-trimmed' entry)!
+        if not skim:
+            for r in post:
+                print "WARNING: read ---- " + r + "  ---- not found in pre-trimmed data."
+                #rid_class['generated_warning'].extend([r]) # actually can't plot this (no 'pre-trimmed' entry)!
             
             
         #########################################################
@@ -688,7 +705,7 @@ def main():
     ###########################
     # << CALL R SCRIPT HERE >>#
     ###########################
-    cmd6 = 'Rscript ' +'./graph_ts.R '+ out_DN + ' ' + str(maxAggN)  #os.curdir
+    cmd6 = 'Rscript ' +'./graph_ts.R '+ out_DN + ' ' + str(maxAggN) + ' ' + str(gdiff)  #os.curdir
 
     #cmd6 = 'Rscript ' +'./graph_ts.R '+ tempfname + ' ' + out_DN + '/' + gr_FN + ' ' + out_DN +'/' + aggGr_FN + ' ' + str(maxAggN)  #os.curdir
     print (cmd6)
@@ -803,7 +820,7 @@ def print_help ():
     -c/--classes          [uncut,3pcut,removed,5pcut] Comma-separated trim-classes to visualise in individual read visualisation.
                           One/several of 'uncut','5pcut','3pcut','removed','generated_warning','indel'
     -a/--adapt:           comma-separated adapter sequences to highlight (multiple adapters not supported yet - defaults to first adapter in list)
-    -A/--adaptfile        Text file containing adapter sequences
+    -A/--adaptfile        Text file containing adapter sequences (multiple adapters not supported yet - defaults to first adapter in list)
     -n/--sample_size      [50000] internal parameter: max reads to subsample in file (should be >> -m and -v, especially if only a small proportion are trimmed)
     -v/--nvis             [20] number of reads in each category (or in total if -R is set) to use for detailed individual plots
     -w/--heatmap_reads    [200] number of reads to plot in heatmaps
@@ -812,19 +829,22 @@ def print_help ():
     -s/--rseed            [1] random seed for sampling
     
     flags:
+    -k/--skim             Speed up by skimming the reads from the tops of the fastq files (warning: these will be edge-of-flowcell reads)
     -R/--representative   Ignore read-classes and take a representative sample. (This often results in untrimmed reads dominating the visualization)
     -z/--gzipped          Assume fastq files are gzipped (default behaviour is to guess via .gz file extension)
     -e/--read2only        If set, only alignments with the 'read-2' flag will be extracted from the .bam file (default: only read-1 is extracted)
+    -d/--diff             When displaying genomic alignment context from bam file, only display nucleotides that differ from the read sequence
     -h/--help:            Print help
      
     Requires:
     Rscript
     seqtk
     zcat
+    fgrep
     python libs:
     getopt, subprocess, random, re, sys, os, gzip, pipes, pysam
     R libs:
-    ggplot2,ape,reshape2,gridExtra
+    ggplot2, ape, reshape2, gridExtra
     '''
 
 def makeReport(mode, out_DN, trimClassTbl, lenpre, orig_FN1, proc_FN1, orig_FN2, proc_FN2, bam_FN, gfasta_FN):     

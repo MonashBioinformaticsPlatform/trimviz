@@ -5,12 +5,17 @@ library(ape)
 library(reshape2)
 library(gridExtra)
 
-anchorPlot <- function(x, datatype='s', clustby='s', EOI = '3p'){
+anchorPlot <- function(x, datatype='s', clustby='s', EOI = '3p', gdiff=F){
   ordCol=paste0('ord.',clustby)
   ttls1 = list(s='Read sequence; ', g='Genomic sequence; ', q='Base-quality; ', t='Trim location; ')
   ttls2 = list(s='Clustered by read sequence', g='Clustered by genomic sequence', q='Clustered by base-quality patterns', t='Clustered by trim location')
+  x$xalpha=F
+  if (gdiff && (datatype=='g')){
+    x$xalpha=(x$g==x$s)
+    ttls2[[clustby]] = '(diff, c.f. read) '
+  }
   gr = ggplot(x, aes_string(x = 'pos', y = ordCol, fill = datatype)) + 
-    geom_raster(aes(alpha = as.numeric(pos == 0))) + # | s == 'N'))) + 
+    geom_raster(aes(alpha = as.numeric(pos == 0 | xalpha))) + # | s == 'N'))) + 
     theme_bw() + 
     theme(plot.margin = unit(c(0.2,0.2,0.2,0.2), "cm"), legend.margin=margin(t = 0, unit='cm')) +
     scale_alpha(range = c(1,0)) + guides(alpha=FALSE)+
@@ -23,7 +28,7 @@ anchorPlot <- function(x, datatype='s', clustby='s', EOI = '3p'){
     guides(fill = guide_colourbar(barwidth = 0.5, title = 'base-call quality', 
                                       title.position = "left", title.theme = element_text(angle = 90, size = 11)))
   } else {
-    gr = gr + scale_fill_manual(values = c("orange","green","#3333FF","#707070","red", "black")) + 
+    gr = gr + scale_fill_manual(values = c("orange","green","#4444FF","#707070","red", "black")) + 
     guides(fill = guide_legend( keywidth = 0.5, title = 'Sequence (X = insertion)',
                                     title.position = "left", title.theme = element_text(angle = 90, size = 11)))
     # A C G N T X
@@ -35,12 +40,13 @@ anchorPlot <- function(x, datatype='s', clustby='s', EOI = '3p'){
 
 ## Collect arguments
 args <- commandArgs(TRUE)
-if (length(args) != 2){
+if (length(args) != 3){
   print (args)
   stop('incorrect number of arguments given to graph_ts.R')
 }
 out_DN = args[1]
 maxAggN = as.integer(args[2])
+gdiff = (as.character(args[3])=='True')
 reads_FN = paste0(out_DN, '/trimVisTmpFiles/trimviz_readData.tsv')
 #seq3p_FN = paste0(out_DN, '/trimVisTmpFiles/seq3psites.txt')
 #seq5p_FN = paste0(out_DN, '/trimVisTmpFiles/seq5psites.txt')
@@ -213,20 +219,20 @@ for (EOI in c('3p','5p')){
   
   if (length(absentData) > 0 && absentData == 'g'){
     pdf( paste0(out_DN, '/TVheatmap_S_',EOI,'.pdf'), width=15, height=20)
-      grid.arrange(anchorPlot(allres2, 's','s', EOI), anchorPlot(allres2, 'q','s'), ncol=2)
+      grid.arrange(anchorPlot(allres2, 's','s', EOI), anchorPlot(allres2, 'q','s', EOI), ncol=2)
     dev.off()
     pdf( paste0(out_DN, '/TVheatmap_Q_',EOI,'.pdf'), width=15, height=20)
-      grid.arrange(anchorPlot(allres2, 's','q', EOI), anchorPlot(allres2, 'q','q'), ncol=2)
+      grid.arrange(anchorPlot(allres2, 's','q', EOI), anchorPlot(allres2, 'q','q', EOI), ncol=2)
     dev.off()
   } else {
     pdf( paste0(out_DN, '/TVheatmap_S_',EOI,'.pdf'), width=15, height=20)
-      grid.arrange(anchorPlot(allres2, 's','s', EOI), anchorPlot(allres2, 'q','s'), anchorPlot(allres2, 'g','s'), ncol=3)
+      grid.arrange(anchorPlot(allres2, 's','s', EOI), anchorPlot(allres2, 'q','s', EOI, gdiff), anchorPlot(allres2, 'g','s', EOI, gdiff), ncol=3)
     dev.off()
     pdf( paste0(out_DN, '/TVheatmap_Q_',EOI,'.pdf'), width=15, height=20)
-      grid.arrange(anchorPlot(allres2, 's','q', EOI), anchorPlot(allres2, 'q','q'), anchorPlot(allres2, 'g','q'), ncol=3)
+      grid.arrange(anchorPlot(allres2, 's','q', EOI), anchorPlot(allres2, 'q','q', EOI), anchorPlot(allres2, 'g','q', EOI, gdiff), ncol=3)
     dev.off()
     pdf( paste0(out_DN, '/TVheatmap_G_',EOI,'.pdf'), width=15, height=20)
-      grid.arrange(anchorPlot(allres2, 's','g', EOI), anchorPlot(allres2, 'q','g'), anchorPlot(allres2, 'g','g'), ncol=3)
+      grid.arrange(anchorPlot(allres2, 's','g', EOI), anchorPlot(allres2, 'q','g', EOI), anchorPlot(allres2, 'g','g', EOI, gdiff), ncol=3)
     dev.off()
   }
   
