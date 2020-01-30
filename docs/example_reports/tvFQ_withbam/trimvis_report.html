@@ -10,13 +10,14 @@
           padding-left: 10px;
           font-weight: normal
         }
-        .left-div {
-            float: left;
-            width: 40%;
-            margin-right: 8px;
+        .inline-2perline{
+            display: inline-block;   
+            width: 49%;
         }
-        .right-div {
-            margin-left: 45%;
+        .full-div {
+            vertical-align: top
+            margin-left: 8px;
+            margin-right: 8px;
         }
         .verdanafont {
             font-family:'verdana'
@@ -24,10 +25,26 @@
         h100 { font-family:"Courier New"; display:inline }
     </style>
     <div class="verdanafont">
-    <h1> Trimviz trimming summary: Fastq-fastq comparison mode, with alignment </h1> <br><hr/><br><div>Untrimmed R1 fastq file: <h100> ../tv_data/pre_trimmed.fastq.gz </h100> <br>Trimmed R1 fastq file: <h100> ../tv_data/post_trimmed.fastq.gz </h100> <br>bam file: <h100> ../tv_data/alignment.bam </h100> <br>genome fasta file: <h100> ../tv_data/genome.fa </h100> <br></div><br><hr/>
-    <div class="left-div"> 
+    <h1> Trimviz trimming summary: Fastq-fastq comparison mode, with alignment </h1> <br><hr/><br><div>Untrimmed R1 fastq file: <h100> ../tv_data/pre_trimmed_R1.fastq.gz </h100> <br>Trimmed R1 fastq file: <h100> ../tv_data/post_trimmed_R1.fastq.gz </h100> <br>bam file: <h100> ../tv_data/alignment.bam </h100> <br>genome fasta file: <h100> ../tv_data/genome.fa </h100> <br></div>
+                   <br>
+                   <hr/> 
     <h3> Summary of trimming frequency </h3>
     <table class="mytable-marg" ><tr><th><b>Trim class</b></th><th><b>Number of reads</b></th></tr>
-    <tr><th> 3pcut </th><th> 8586 </th><tr><th> 5pcut </th><th> 0 </th><tr><th> generated_warning </th><th> 0 </th><tr><th> indel </th><th> 1211 </th><tr><th> removed </th><th> 863 </th><tr><th> uncut </th><th> 40551 </th><tr><th><b>Tot unique</b></th><th><b>50000</b></th></tr></table><br><hr/></div>
-                   <div class="right-div"><p> 3pcut trim position profile: <br> <embed src= profile_3pcut.pdf type="application/pdf" width="100%" height="650px" /><br></div><br><hr/><hr/><details> <summary> Heatmap, reads clustered by untrimmed read sequence </summary> <br><embed src= TVheatmap_S.pdf type="application/pdf" width="100%" height="600px" /><br> </details> <p> <br></p><hr/><details> <summary> Heatmap, reads clustered by quality patterns </summary> <br><embed src= TVheatmap_Q.pdf type="application/pdf" width="100%" height="600px" /><br> </details> <p> <br></p><hr/><details> <summary> Individual read trimming, grouped by trimming class </summary> <br><embed src= indiv_reads.pdf type="application/pdf" width="100%" height="600px" /><br> </details> <p> <br></p><br>
-</div>
+    <tr><th> 3pcut </th><th> 8586 </th><tr><th> 5pcut </th><th> 0 </th><tr><th> generated_warning </th><th> 0 </th><tr><th> indel </th><th> 1211 </th><tr><th> removed </th><th> 863 </th><tr><th> uncut </th><th> 40551 </th><tr><th><b>Tot unique</b></th><th><b>50000</b></th></tr></table>
+    <br><hr/><p> <div class="inline-2perline">3p trim position profile: <br><embed src= profile_3pcut.pdf type="application/pdf" width="100%" height="650px" /><br>
+        </div>
+        <div class="inline-2perline">
+        
+                  </div></p><br><hr/>
+                  <div><hr/><details> <summary> Heatmap, 3'-trimmed reads clustered by untrimmed read sequence </summary> <br><embed src= TVheatmap_S_3p.pdf type="application/pdf" width="100%" height="600px" /><br> </details>
+            <br>
+            <hr/><details> <summary> Heatmap, 3'-trimmed reads clustered by quality patterns </summary> <br><embed src= TVheatmap_Q_3p.pdf type="application/pdf" width="100%" height="600px" /><br> </details>
+            <br>
+            <hr/><details> <summary> Heatmaps, 3'-trimmed reads clustered by local reference sequence </summary> <br><embed src= TVheatmap_G_3p.pdf type="application/pdf" width="100%" height="600px" /><br> </details>
+            <br>
+            <hr/><details> <summary> Individual read trimming, grouped by trimming class </summary> <br><embed src= indiv_reads.pdf type="application/pdf" width="100%" height="600px" /><br> </details>
+            <br>
+            
+                  </div>
+                  <hr/>
+                  </div> <br><br>
