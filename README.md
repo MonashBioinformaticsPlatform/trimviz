@@ -124,16 +124,12 @@ In fastq-fastq mode (FQ), trimviz takes a random sample of reads from an untrimm
 <br><br>
 Trimviz classifies reads into 'uncut', '3pcut' (ie. 3' trimmed), '5pcut' (ie. 5' trimmed, 'removed' (ie. filtered reads in FQ mode; unmapped reads in SC mode) by comparison between pre- and post- trimmed fastq files (or between a fastq file and a bam file in SC mode). Trimviz randomly samples reads from the entire fastq file, thus it has to stream though 2 or 3 large files and may take some time to complete (or you can just skim the top of the fastq files with the -k option, as long as the read-order is the same). It can accept fastq-files that were output from any trimming tool.    
 <br>
-The Trimviz report includes: <br> 
-1) Table of the number of reads falling into each of the above read trimming categories (not mutually exclusively).
-<br>
-2) Read-trimming profiles for a) 3'-trimmed and b) 5'-trimmed reads (if any). Gives a zoomed-out overview of where reads were trimmed in each trimming category.
-<br>
-3) Sequence and base-quality heatmaps for reads, anchored around a) 3'-trimming sites and b) 5'-trimming sites (if any). Adapter sequences are usually seen as large blocks of identical sequence after clustering. Other problems such as low mappability or inclusion of poor-quality bases can be seen.
-<br>
-4) 1-by-1 visualisations of trimmed reads from each category. By default, Trimviz attempts to visualise roughly equal numbers of the 4 main trimming/clipping classes.
-
-<br>
+The Trimviz report includes: 
+<br> 
+1) Table of the number of reads falling into each of the above read trimming categories (not mutually exclusively). <br>
+2) Read-trimming profiles for a) 3'-trimmed and b) 5'-trimmed reads (if any). Gives a zoomed-out overview of where reads were trimmed in each trimming category. <br>
+3) Sequence and base-quality heatmaps for reads, anchored around a) 3'-trimming sites and b) 5'-trimming sites (if any). Adapter sequences are usually seen as large blocks of identical sequence after clustering. Other problems such as low mappability or inclusion of poor-quality bases can be seen. <br>
+4) 1-by-1 visualisations of trimmed reads from each category. By default, Trimviz attempts to visualise roughly equal numbers of the 4 main trimming/clipping classes. <br>
 
 Collectively, these visualizations give an idea as to the primary drivers of trimming by the trimming tool or aligner (e.g. adapter-trimming vs quality-trimming) and can help diagnose problems (e.g. leftover adapter sequences, unneccesary trimming, and even reference assembly problems.)
 
