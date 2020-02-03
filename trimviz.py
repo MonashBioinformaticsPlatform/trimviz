@@ -44,10 +44,12 @@ def main():
     else:
         softClipping = True
         
-    options, remainder = getopt.getopt(sys.argv[2:], 'u:t:U:T:o:O:b:g:c:n:v:w:a:A:f:g:r:s:kRzedh', ['untrimmed=',
-                                                                                   'trimmed=',
-                                                                                   'untrimmed_r2=',
-                                                                                   'trimmed_r2=',
+    options, remainder = getopt.getopt(sys.argv[2:], 'u:p:t:U:P:T:o:O:b:g:c:n:v:w:a:A:f:g:r:s:k:Rzedh', ['untrimmed_R1=',
+                                                                                   'prealign_R1=',
+                                                                                   'trimmed_R1=',
+                                                                                   'untrimmed_R2=',
+                                                                                   'prealign_R2=',
+                                                                                   'trimmed_R2=',
                                                                                    'out_dir=',
                                                                                    'out_dir_all=',
                                                                                    'bam=',
@@ -61,7 +63,7 @@ def main():
                                                                                    'agg_flank='
                                                                                    'rid_file='
                                                                                    'seed=',
-                                                                                   'skim',
+                                                                                   'skim=',
                                                                                    'representative',
                                                                                    'gzipped',
                                                                                    'read2only',
@@ -74,10 +76,10 @@ def main():
     class_opts = ['uncut','5pcut','3pcut','removed','indel','generated_warning']  # not all reads generating warning are included (many are not plottable). indel just for debugging purposes
     
     # set defaults
-    orig_FN1 = str('')  # u   'untrimmed='
-    proc_FN1 = str('')  # t   'trimmed='
-    orig_FN2 = str('')  # U   'untrimmed_r2='
-    proc_FN2 = str('')  # T   'trimmed_r2='
+    Uorig_FN1 = str('')  # u   'untrimmed_R1=' (OR -p/--prealign_R1 in SC mode; this arg naming difference is just to avoid user confusion)
+    Uproc_FN1 = str('')  # t   'trimmed_R1='
+    Uorig_FN2 = str('')  # U   'untrimmed_R2=' (OR -P/--prealign_R2 in SC mode; this arg naming difference is just to avoid user confusion)
+    Uproc_FN2 = str('')  # T   'trimmed_R2='
     out_DN = str('')    # o|O 'out_dir='
     keepTmp = False     # O                # <------- TODO make use of this parameter
     bam_FN = str('')    # b   'bam='
@@ -91,22 +93,23 @@ def main():
     adapt_FN = str('')  # A   'adapt_file='  # <------- TODO make use of this parameter
     rid_FN = str('')    # r   'rid_file='
     rseed = 1           # s   'seed='
-    skim=False          # k   'skim'
+    skim = -1           # k   'skim'
     balance = True      # R   'representative'
     gzipped = True      # z   'gzipped'
-    read2only = False   # e   'read2only'   # <------- TODO paired-end mode
+    Uread2only = False # e   'read2only'   # <------- TODO paired-end mode
+    read2only = False   # not directly user-specified: look at use of -U vs -u. If both used, then defer to read2onlyIN (not supported yet)
     gdiff = False       # d   'diff'
     help = False        # h   'help'
     
     for opt, arg in options:
-        if opt in ('-u', '--untrimmed'):
-            orig_FN1 = arg
-        elif opt in ('-t', '--trimmed'):
-            proc_FN1 = arg
-        elif opt in ('-U', '--untrimmed_r2'):
-            orig_FN2 = arg
-        elif opt in ('-T', '--trimmed_r2'):
-            proc_FN2 = arg
+        if opt in ('-u', '--untrimmed_R1', '-p', '--prealign_R1'):
+            Uorig_FN1 = arg
+        elif opt in ('-t', '--trimmed_R1'):
+            Uproc_FN1 = arg
+        elif opt in ('-U', '--untrimmed_R2', '-P', '--prealign_R2'):
+            Uorig_FN2 = arg
+        elif opt in ('-T', '--trimmed_R2'):
+            Uproc_FN2 = arg
         elif opt in ('-o', '--out_dir'):
             out_DN = arg
         elif opt in ('-O', '--out_dir_all'):
@@ -115,7 +118,7 @@ def main():
         elif opt in ('-b', '--bam'):
             bam_FN = arg
         elif opt in ('-g', '--genome_fasta'):
-            gfasta_FN = arg # g
+            gfasta_FN = arg
         elif opt in ('-c', '--classes'):
             coi_raw = arg.split(',')
         elif opt in ('-n', 'sample_size'): # should be large enough to be able to get a balanced set of read-trim classes
@@ -129,24 +132,23 @@ def main():
         elif opt in ('-a', '--adapt'):
             madapt = arg.split(',')
         elif opt in ('-A', '--adapt_file'):
-            adapt_FN = arg     # 
+            adapt_FN = arg
         elif opt in ('-r', '--read_id_file'):
-            rid_FN = arg    # t
+            rid_FN = arg
         elif opt in ('-s', '--seed'):
             rseed = int(arg)
         elif opt in ('-k', '--skim'):
-            skim = True  # <-------------------- TO DO
+            skim = int(arg)
         elif opt in ('-R', '--representative'):
             balance = False
         elif opt in ('-z', '--gzipped'):
             gzipped = True
-        elif opt in ('-e', '--read2only'):
-            read2only=True
+        elif opt in ('-e', '--read2only'): # supported in future version (only applies if both -u and -U are given now)
+            read2onlyIN = True
         elif opt in ('-d', '--diff'):
             gdiff=True
         elif opt in ('-h', '--help'):
             print_help()
-            
     # Open a file.  Use gzip based on filename, or 'gzipped' flag
     def gzopen(fname):
         if gzipped or fname.endswith('.gz'):
@@ -160,8 +162,8 @@ def main():
     coi = [x for x in coi_raw if x in class_opts]
     if len(coi) < len (coi_raw):
         print ("Warning, values given in -c should include only %s, comma-separated") % (', '.join(class_opts))
-    if not cmd_exists('seqtk'):
-        print(' *** Could not find seqtk executable. Please install seqtk. Exiting. ***')
+    if not cmd_exists('seqtk') and skim <0:
+        print(' *** Could not find seqtk executable. Please install seqtk or only use skim mode (-k). Exiting. ***')
         exit()
     if out_DN == '':
         print('Error: output directory required.')
@@ -170,12 +172,31 @@ def main():
     if os.path.exists(out_DN):
         print('Error: output directory already exists. Exiting.')
         exit()
-    if not os.path.isfile(orig_FN1):
-        if len(orig_FN1) > 0:
-            print('Could not find input fastq file: ' + orig_FN1 + '. Exiting.')
+    if (Uorig_FN1 != '' and Uproc_FN2 != '') or (Uorig_FN2 != '' and Uproc_FN1 != ''):
+        if Uorig_FN1 != '' and Uorig_FN2 != '' and Uproc_FN1 != '' and Uproc_FN2 != '': # it'll be OK if all 4 are nominated in a future version
+            # read2only = read2onlyIN
+            print('Error: both R1 and R2 fastq files given. (Support for this is planned for a future version)')
+            exit()
         else:
-            print orig_FN1
-            print ('No untrimmed R1 file given (required). Exiting.')
+            print('Error: R1 or R2 must be the same between untrimmed and trimmed fastq files.')
+            exit()
+    if Uorig_FN1 != '' and Uorig_FN2 != '':
+        # read2only = read2onlyIN
+        print('Error: both R1 and R2 fastq files given. (Support for this is planned for a future version)') # it'll be OK if both R1 and R2 files are given for Uorig (in SC mode) in a future version
+        exit()
+    if Uorig_FN2 != '' and Uorig_FN1 == '':
+        orig_FN = Uorig_FN2
+        proc_FN = Uproc_FN2
+        read2only = True
+    else:
+        orig_FN = Uorig_FN1
+        proc_FN = Uproc_FN1
+        read2only = False
+    if not os.path.isfile(orig_FN):
+        if len(orig_FN) > 0:
+            print('Could not find input fastq file: ' + orig_FN + '. Exiting.')
+        else:
+            print ('No input fastq file given (required). Exiting.')
             print_help()
         exit()
     if bam_FN != '':
@@ -193,18 +214,26 @@ def main():
             coi = [x for x in coi if x != 'indel']
             print ('Warning: cannot request indel as a trim-class without giving a bam file.')
     if softClipping:
+        badOpts = [opt for opt,arg in options if opt in ['-u', '--untrimmed_R1','-U', '--untrimmed_R2','-t', '--trimmed_R1','-T', '--trimmed_R2']]
+        if len(badOpts) > 0:
+            print("Error: one or more FQ mode-only options was chosen in SC mode: " + ', '.join(badOpts))
+            print_help()
+            exit()
         if bam_FN == '':
             print('No bam filename was given (required in SC mode). Exiting.')
             print_help()
             exit()
-        if proc_FN1 != '' or proc_FN2 != '':
-            print ("Warning, -t and -T options not used in SC mode. Ignoring.")  
-    else:   
-        if not os.path.isfile(proc_FN1):
-            if proc_FN1 != '':
-                print('Could not find trimmed R1 fastq file ' + proc_FN1 + '. Exiting.')
+    else:
+        badOpts = [opt for opt,arg in options if opt in ['-p', '--prealign_R1', '-P', '--prealign_R2']]
+        if len(badOpts) > 0:
+            print("Error: one or more SC mode-only options was chosen in FQ mode: " + ', '.join(badOpts))
+            print_help()
+            exit()  
+        if not os.path.isfile(proc_FN):
+            if proc_FN != '':
+                print('Could not find trimmed R1 fastq file ' + proc_FN + '. Exiting.')
             else:
-                print ('No trimmed R1 file given, but this is required in FQ mode. Exiting.')
+                print ('No trimmed fastq file given, but this is required in FQ mode. Exiting.')
                 print_help()
             exit()
     if not os.path.isfile(adapt_FN) and adapt_FN != '':
@@ -226,15 +255,6 @@ def main():
     if nvis > 500:
         nvis = 500
         sys.stderr.write('Warning: Nominated sample size for individual read rendering is larger than 500. Lowering.\n')
-    
-    paired=False 
-    if orig_FN2 != '' or proc_FN2 != '':
-        if os.path.isfile(orig_FN2) and (os.path.isfile(proc_FN2) or softClipping):
-            paired=True
-        else:
-            sys.stderr.write('Error: A Read-2 filename was given, but could not locate both Read-2 files (or a bam file).\n')
-            quit()
-            # <---------- TODO: paried-end mode
 
     if len(adapt_FN)>0:
         if os.path.exists(adapt_FN) and os.path.isfile(adapt_FN):
@@ -262,35 +282,37 @@ def main():
         pcnt_sgn = """%"""
         # split output into a temp fq file (tmpPre1_FN) and a readname list file (readIDs1_FN)
         # remove @, anything after a space in readname; append a tab char to improve fgrep specificity for bam-searching
-        # note: sed 's/[ \/].*$//' messes up seqtk search of fastqs with RNs ending in /1 or /2 (but is required to search bams)
-        if skim:
-            cmd3 = "zcat %s | head -n %d | tee >(awk '1 == NR %s 4' | sed 's/@//'  | sed 's/[ ].*$//' | sed 's/$/\t/' > %s ) | gzip > %s" % (pipes.quote(orig_FN1),
+        # note: sed 's/[ \/].*$//' messes up seqtk search of fastqs with RNs ending in /1 or /2 (but is required to search bams so will create separate file of RIDs for that; see cmd3B)
+        if skim != -1:
+            print 'skimming from top of fastq files after skipping first %d reads' % (skim)
+            cmd3 = "zcat %s | head -n %d | tail -n %d | tee >(awk '1 == NR %s 4' | sed 's/@//'  | sed 's/[ ].*$//' | sed 's/$/\t/' > %s ) | gzip > %s" % (pipes.quote(orig_FN),
+                                                                                                                          target_n_pre*4 + skim*4,
                                                                                                                           target_n_pre*4,
                                                                                                                           pcnt_sgn,
                                                                                                                           readIDs1_FN,
                                                                                                                           pipes.quote(tmpPre1_FN))
         else:
             cmd3 = "seqtk sample -s%d %s %d | tee >(awk '1 == NR %s 4' | sed 's/@//'  | sed 's/[ ].*$//' | sed 's/$/\t/' > %s ) | gzip > %s" % (rseed,
-                                                                                                                          pipes.quote(orig_FN1),
+                                                                                                                          pipes.quote(orig_FN),
                                                                                                                           target_n_pre,
                                                                                                                           pcnt_sgn,
                                                                                                                           readIDs1_FN,
                                                                                                                           pipes.quote(tmpPre1_FN))       
     else: # user-specified RIDs
-        if skim:
+        if skim != -1:
             print "Warning: -k option over-ridden by user supplying a read-id file."
         cmd2 = "cat %s | sed 's/@//'  | sed 's/[ ].*$//' | sed 's/$/\t/' > %s" % (rid_FN, readIDs1_FN) # clean up user-specified rids for seqtk
         with open(out_DN + '/trimVisTmpFiles/tmp_bash2.sh', 'w') as fout:
             print >> fout, cmd2
         sout2 = subprocess.check_output(['bash', out_DN + '/trimVisTmpFiles/tmp_bash2.sh'])
         print (sout2)
-        cmd3 = "seqtk subseq %s %s | gzip > %s " % (pipes.quote(orig_FN1), readIDs1_FN, tmpPre1_FN)
+        cmd3 = "seqtk subseq %s %s | gzip > %s " % (pipes.quote(orig_FN), readIDs1_FN, tmpPre1_FN)
     
     with open(out_DN + '/trimVisTmpFiles/tmp_bash3.sh', 'w') as fout:
             print >> fout, cmd3
             
     # retrieve from ORIG FQ using seqtk
-    print ('sampling from original fastq using seqtk...')
+    print ('sampling from original fastq...')
     sout3 = subprocess.check_output(['bash', out_DN + '/trimVisTmpFiles/tmp_bash3.sh'])
     # this either runs seqtk sample -> readIDs1_FN & tmpPre1_FN; or, if rid_file (-r) is already specified, just seqtk subseq -> tmpPre1_FN
     # either way, files readIDs1_FN & tmpPre1_FN now exist
@@ -348,14 +370,14 @@ def main():
     ####################################################################################  
     
     if not softClipping:     
-        # retrieve same reads (in readIDs1_FN) from TRIMMED FQ (proc_FN1) using seqtk
-        if skim:
-            cmd5 = "zcat %s | head -n %d | gzip > %s " % (proc_FN1, target_n_pre*4, tmpPost1_FN)
+        # retrieve same reads (in readIDs1_FN) from TRIMMED FQ (proc_FN) using seqtk
+        if skim != -1:
+            cmd5 = "zcat %s | head -n %d | gzip > %s " % (proc_FN, (target_n_pre + skim) *4, tmpPost1_FN)
         else:
-            cmd5 = "seqtk subseq %s %s | gzip > %s " % (proc_FN1, readIDs1_FN, tmpPost1_FN)
+            cmd5 = "seqtk subseq %s %s | gzip > %s " % (proc_FN, readIDs1_FN, tmpPost1_FN)
         with open(out_DN + '/trimVisTmpFiles/tmp_bash4.sh', 'w') as fout:
             print >> fout, cmd5
-        print ('Finding the reads in trimmed fastq file using seqtk...')
+        print ('Finding the reads in trimmed fastq file...')
         sout4 = subprocess.check_output(['bash', out_DN + '/trimVisTmpFiles/tmp_bash4.sh'])
         print (sout4)
         
@@ -718,10 +740,10 @@ def main():
     ###########################   
     mode = "Fastq-fastq comparison mode, with alignment"
     if softClipping:
-        mode = "Fastq-bam soft-clipping mode"
+        mode = "Fastq-bam soft-clipping mode" # don't edit: test in function depends on this verbatim
     elif bam_FN == '':
         mode = "Fastq-fastq comparison mode"
-    report = makeReport(mode, out_DN, trimClassTbl, len(pre), orig_FN1, proc_FN1, orig_FN2, proc_FN2, bam_FN, gfasta_FN)
+    report = makeReport(mode, out_DN, trimClassTbl, len(pre), Uorig_FN1, Uproc_FN1, Uorig_FN2, Uproc_FN2, bam_FN, gfasta_FN)
     with open (out_DN+'/trimvis_report.html', 'w') as fout:
         print >> fout, report
    
@@ -798,24 +820,27 @@ def print_help ():
     looks up the same reads in a trimmed fastq file and visualises the
     trimmed reads with respect to surrounding base call quality values and
     adapter sequence. In soft-clipping mode, Trimviz will instead
-    visualize the soft-clipping of reads by an aligner. To examine Read 2
-    from paired-end data, set the `-e/--read2only` flag.
+    visualize the soft-clipping of reads by an aligner. To analyse Read 2
+    from paired-end data, use -U/-T/-P instead of -u/-t/-p for Read 2
+    fastq file-name.
     
     Usage:
-    ./trimviz.py FQ -o/-O output_dir -u untrimmed_R1.fq.gz -t trimmed_R1.fq.gz [ -b align.bam -g reference.fa ]
-    ./trimviz.py SC -o/-O output_dir -u unaligned_R1.fq.gz -b align.bam -g reference.fa
+    ./trimviz.py FQ -o/-O output_dir -u/-U untrimmed.fq.gz -t/-T trimmed.fq.gz [ -b align.bam -g reference.fa ]
+    ./trimviz.py SC -o/-O output_dir -p/-P prealignment.fq.gz -b align.bam -g reference.fa
     
     trimsviz.py FQ        Fastq-fastq comparison. Bam file and genome fasta file can be optionally given to view the mapping outcomes for trimmed reads.
     trimsviz.py SC        Treat soft clipping as the trimming of interest. Bam and genome fasta file are required, with only one fastq file.
     
     options:
     -o/--out_dir          Directory for output. If it already exists, an error will be generated.
-    -O/--out_dir_fat      Directory for output (retain temporary files; choose this option to keep the sub-sampled fastq files)
-    -u/--untrimmed        Untrimmed (original) fastq file name. In SC mode, this should be the fastq file that was directly input into the aligner.
-    -t/--trimmed          Trimmed fastq file name
-    -U/--untrimmed_r2     Read2 fastq file corresponding to -u file (not implemented yet)
-    -T/--trimmed_r2       Read2 fastq file corresponding to -t file (not implemented yet)
-    -b/--bam              Bam file (optional in FQ mode; required in SC mode). Only R1 alignments will be extracted (or only R2 if -e is set).
+    -O/--out_dir_fat      Directory for output + temporary files. Choose this option to keep the sub-sampled fastq files.
+    -u/--untrimmed_R1     FQ mode: untrimmed Read 1 fastq file. 
+    -t/--trimmed_R1       FQ mode: trimmed Read 1 fastq file.
+    -U/--untrimmed_R2     FQ mode: untrimmed Read 2 fastq file.
+    -T/--trimmed_R2       FQ mode: trimmed Read 2 fastq file.
+    -p/--prealign_R1      SC mode: Read 1 fastq file input into the aligner, which may or may not have been trimmed prior to alignment.
+    -P/--prealign_R2      SC mode: Read 2 fastq file input into the aligner, which may or may not have been trimmed prior to alignment.
+    -b/--bam              Bam file (optional in FQ mode; required in SC mode).
     -g/--genome_fasta     Fasta file of genome sequence (required if using .bam alignment)
     -c/--classes          [uncut,3pcut,removed,5pcut] Comma-separated trim-classes to visualise in individual read visualisation.
                           One/several of 'uncut','5pcut','3pcut','removed','generated_warning','indel'
@@ -827,27 +852,29 @@ def print_help ():
     -f/--agg_flank        [20] number of flanking nucleotides around trim point to plot in heatmaps 
     -r/--rid_file         File of read-ids to select, instead of using random sampling
     -s/--rseed            [1] random seed for sampling
+    -k/--skim             [-1] Speed up by skimming the reads from the tops of the fastq files (warning: these will be edge-of-flowcell reads).
+                          The argument is the number of reads to skip before sampling -n reads. The fastq files must be in the same order. 
     
     flags:
-    -k/--skim             Speed up by skimming the reads from the tops of the fastq files (warning: these will be edge-of-flowcell reads)
-    -R/--representative   Ignore read-classes and take a representative sample. (This often results in untrimmed reads dominating the visualization)
+    -R/--representative   Ignore read-classes and take a representative sample. (This often results in untrimmed reads dominating the 1-by-1 visualization)
     -z/--gzipped          Assume fastq files are gzipped (default behaviour is to guess via .gz file extension)
-    -e/--read2only        If set, only alignments with the 'read-2' flag will be extracted from the .bam file (default: only read-1 is extracted)
+    -e/--read2only        (Not yet implemented) Extract Read-2 alignments from the .bam file. Ignored unless both R1 and R2 files are given.
     -d/--diff             When displaying genomic alignment context from bam file, only display nucleotides that differ from the read sequence
-    -h/--help:            Print help
+    -h/--help:            Print this help page
      
     Requires:
     Rscript
-    seqtk
+    seqtk (except in -k mode)
+    samtools
     zcat
     fgrep
-    python libs:
+    Python-2 libraries:
     getopt, subprocess, random, re, sys, os, gzip, pipes, pysam
-    R libs:
+    R libraries:
     ggplot2, ape, reshape2, gridExtra
     '''
 
-def makeReport(mode, out_DN, trimClassTbl, lenpre, orig_FN1, proc_FN1, orig_FN2, proc_FN2, bam_FN, gfasta_FN):     
+def makeReport(mode, out_DN, trimClassTbl, lenpre, Uorig_FN1, Uproc_FN1, Uorig_FN2, Uproc_FN2, bam_FN, gfasta_FN):     
     report=list()                                                                            
     report.append ('''<!DOCTYPE html>
     <style>
@@ -880,42 +907,37 @@ def makeReport(mode, out_DN, trimClassTbl, lenpre, orig_FN1, proc_FN1, orig_FN2,
     
     report.append( '<h1> Trimviz trimming summary: %s </h1> <br><hr/><br><div>' % mode )
     
-    VAR1={'-u (input fastq file)':orig_FN1,
-          '-t (trimmed fastq file)':proc_FN1,
-          '-U (input R2 fastq file)':orig_FN2,
-          '-T (trimmed R2 fastq file)':proc_FN2,
-          '-b (bam file)':bam_FN,
-          '-g (genome fasta file)':gfasta_FN}
-    report.append ('<br> <h3> Input files: </h3>')
-    report.append ('<br>'.join( (k + ': <h100> ' + v + ' </h100> ') for (k, v) in VAR1.items() if not v=='')  )
-    report.append ('''<br></div>
-                   <br>
-                   <hr/>''')
+    if mode == "Fastq-bam soft-clipping mode":
+        VAR1={'-p (input R1 fastq file)':Uorig_FN1,
+              '-P (input R2 fastq file)':Uorig_FN2}
+    else:
+        VAR1={'-u (input R1 fastq file)':Uorig_FN1,
+              '-t (trimmed R1 fastq file)':Uproc_FN1,
+              '-U (input R2 fastq file)':Uorig_FN2,
+              '-T (trimmed R2 fastq file)':Uproc_FN2}
+    VAR1.update({'-b (bam file)':bam_FN,
+                 '-g (genome fasta file)':gfasta_FN})
+    
+    htmlblock ='<h3> Input files: </h3>\n'
+    htmlblock +='<br>\n'.join( (k + ': <h100> ' + v + ' </h100>') for (k, v) in VAR1.items() if not v=='')
+    htmlblock += '<br></div><br><hr/>'
+    report.append (htmlblock)
 
-    htmlTbl = ''' 
-    <h3> Summary of trimming frequency </h3>
-    <table class="mytable-marg" ><tr><th><b>Trim class</b></th><th><b>Number of reads</b></th></tr>
-    '''
+    htmlTbl = '<h3> Summary of trimming frequency </h3> \n <table class="mytable-marg" ><tr><th><b>Trim class</b></th><th><b>Number of reads</b></th></tr>\n'
     for (cls, ncls) in trimClassTbl.items():
-        htmlTbl += '<tr><th> %s </th><th> %d </th>' % (cls , ncls)
-    htmlTbl += '<tr><th><b>Tot unique</b></th><th><b>%d</b></th></tr>' % (lenpre)     
-    htmlTbl += '''</table>
-    <br><hr/>'''
+        htmlTbl += '<tr><th> %s </th><th> %d </th>\n' % (cls , ncls)
+    htmlTbl += '<tr><th><b>Tot unique</b></th><th><b>%d</b></th></tr>\n' % (lenpre)     
+    htmlTbl += '</table><br><hr/>'
     report.append (htmlTbl)
-    report.append ('''<p> <div class="inline-2perline">''')
+    
+    htmlblock = '<div class="inline-2perline">\n'
     if os.path.isfile(out_DN + '/profile_3pcut.pdf'):
-        htmlblock = '3p trim position profile: <br><embed src= profile_3pcut.pdf type="application/pdf" width="100%" height="650px" /><br>'
-        htmlblock += '''
-        </div>
-        <div class="inline-2perline">
-        '''
-        report.append( htmlblock )
+        htmlblock += '3p trim position profile: <br><embed src= profile_3pcut.pdf type="application/pdf" width="100%" height="650px" /><br>\n'
+        htmlblock += '</div><div class="inline-2perline">\n'
     if os.path.isfile(out_DN + '/profile_5pcut.pdf'):
-        htmlblock = '5p trim position profile: <br><embed src= profile_5pcut.pdf type="application/pdf" width="100%" height="650px" /><br>'
-        report.append( htmlblock )
-    report.append('''
-                  </div></p><br><hr/>
-                  <div>''')
+        htmlblock += '5p trim position profile: <br><embed src= profile_5pcut.pdf type="application/pdf" width="100%" height="650px" /><br>\n'
+    htmlblock += '</div><br><hr/><div>'
+    report.append( htmlblock )
         
     #<!-- VAR7 example: ['3p','5p']; (repeat html block len(VAR7) times) --> 
     
@@ -930,18 +952,13 @@ def makeReport(mode, out_DN, trimClassTbl, lenpre, orig_FN1, proc_FN1, orig_FN2,
  
     for fn_descr in pdfs:
         if os.path.isfile(out_DN + '/' + fn_descr[0]):
-            htmlblock = '<hr/><details> <summary> %s </summary> <br>' % fn_descr[1]
-            htmlblock += '<embed src= %s type="application/pdf" width="100%%" height="600px" />' % fn_descr[0]
-            htmlblock += '''<br> </details>
-            <br>
-            '''
+            htmlblock = '<hr/><details> <summary> %s </summary> <br>\n' % fn_descr[1]
+            htmlblock += '<embed src= %s type="application/pdf" width="100%%" height="600px" />\n' % fn_descr[0]
+            htmlblock += '''<br></details><br>'''
             report.append( htmlblock )
     
-    report.append('''
-                  </div>
-                  <hr/>
-                  </div> <br><br>''')
-    return(''.join(report))
+    report.append('</div><hr/></div><br><br>')
+    return("\n\n".join(report))
 
 
 if __name__ == "__main__":

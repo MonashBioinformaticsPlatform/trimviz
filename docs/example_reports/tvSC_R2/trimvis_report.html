@@ -25,32 +25,58 @@
         h100 { font-family:"Courier New"; display:inline }
     </style>
     <div class="verdanafont">
-    <h1> Trimviz trimming summary: Fastq-bam soft-clipping mode </h1> <br><hr/><br><div><br> <h3> Input files: </h3>-b (bam file): <h100> ../tv_data/alignment.bam </h100> <br>-u (input fastq file): <h100> ../tv_data/post_trimmed_R2.fastq.gz </h100> <br>-g (genome fasta file): <h100> ../tv_data/genome.fa </h100> <br></div>
-                   <br>
-                   <hr/> 
-    <h3> Summary of trimming frequency </h3>
-    <table class="mytable-marg" ><tr><th><b>Trim class</b></th><th><b>Number of reads</b></th></tr>
-    <tr><th> 3pcut </th><th> 41250 </th><tr><th> 5pcut </th><th> 2505 </th><tr><th> generated_warning </th><th> 0 </th><tr><th> indel </th><th> 1249 </th><tr><th> removed </th><th> 882 </th><tr><th> uncut </th><th> 6687 </th><tr><th><b>Tot unique</b></th><th><b>50000</b></th></tr></table>
-    <br><hr/><p> <div class="inline-2perline">3p trim position profile: <br><embed src= profile_3pcut.pdf type="application/pdf" width="100%" height="650px" /><br>
-        </div>
-        <div class="inline-2perline">
-        5p trim position profile: <br><embed src= profile_5pcut.pdf type="application/pdf" width="100%" height="650px" /><br>
-                  </div></p><br><hr/>
-                  <div><hr/><details> <summary> Heatmap, 3'-trimmed reads clustered by untrimmed read sequence </summary> <br><embed src= TVheatmap_S_3p.pdf type="application/pdf" width="100%" height="600px" /><br> </details>
-            <br>
-            <hr/><details> <summary> Heatmap, 3'-trimmed reads clustered by quality patterns </summary> <br><embed src= TVheatmap_Q_3p.pdf type="application/pdf" width="100%" height="600px" /><br> </details>
-            <br>
-            <hr/><details> <summary> Heatmaps, 3'-trimmed reads clustered by local reference sequence </summary> <br><embed src= TVheatmap_G_3p.pdf type="application/pdf" width="100%" height="600px" /><br> </details>
-            <br>
-            <hr/><details> <summary> Heatmap, 5'-trimmed reads clustered by untrimmed read sequence </summary> <br><embed src= TVheatmap_S_5p.pdf type="application/pdf" width="100%" height="600px" /><br> </details>
-            <br>
-            <hr/><details> <summary> Heatmap, 5'-trimmed reads clustered by quality patterns </summary> <br><embed src= TVheatmap_Q_5p.pdf type="application/pdf" width="100%" height="600px" /><br> </details>
-            <br>
-            <hr/><details> <summary> Heatmaps, 5'-trimmed reads clustered by local reference sequence </summary> <br><embed src= TVheatmap_G_5p.pdf type="application/pdf" width="100%" height="600px" /><br> </details>
-            <br>
-            <hr/><details> <summary> Individual read trimming, grouped by trimming class </summary> <br><embed src= indiv_reads.pdf type="application/pdf" width="100%" height="600px" /><br> </details>
-            <br>
-            
-                  </div>
-                  <hr/>
-                  </div> <br><br>
+    
+
+<h1> Trimviz trimming summary: Fastq-bam soft-clipping mode </h1> <br><hr/><br><div>
+
+<h3> Input files: </h3>
+-P (input R2 fastq file): <h100> ../tv_data/post_trimmed_R2.fastq.gz </h100><br>
+-b (bam file): <h100> ../tv_data/alignment.bam </h100><br>
+-g (genome fasta file): <h100> ../tv_data/genome.fa </h100><br></div><br><hr/>
+
+<h3> Summary of trimming frequency </h3> 
+ <table class="mytable-marg" ><tr><th><b>Trim class</b></th><th><b>Number of reads</b></th></tr>
+<tr><th> 3pcut </th><th> 41250 </th>
+<tr><th> 5pcut </th><th> 2505 </th>
+<tr><th> generated_warning </th><th> 0 </th>
+<tr><th> indel </th><th> 1249 </th>
+<tr><th> removed </th><th> 882 </th>
+<tr><th> uncut </th><th> 6687 </th>
+<tr><th><b>Tot unique</b></th><th><b>50000</b></th></tr>
+</table><br><hr/>
+
+<div class="inline-2perline">
+3p trim position profile: <br><embed src= profile_3pcut.pdf type="application/pdf" width="100%" height="650px" /><br>
+</div><div class="inline-2perline">
+5p trim position profile: <br><embed src= profile_5pcut.pdf type="application/pdf" width="100%" height="650px" /><br>
+</div><br><hr/><div>
+
+<hr/><details> <summary> Heatmap, 3'-trimmed reads clustered by untrimmed read sequence </summary> <br>
+<embed src= TVheatmap_S_3p.pdf type="application/pdf" width="100%" height="600px" />
+<br></details><br>
+
+<hr/><details> <summary> Heatmap, 3'-trimmed reads clustered by quality patterns </summary> <br>
+<embed src= TVheatmap_Q_3p.pdf type="application/pdf" width="100%" height="600px" />
+<br></details><br>
+
+<hr/><details> <summary> Heatmaps, 3'-trimmed reads clustered by local reference sequence </summary> <br>
+<embed src= TVheatmap_G_3p.pdf type="application/pdf" width="100%" height="600px" />
+<br></details><br>
+
+<hr/><details> <summary> Heatmap, 5'-trimmed reads clustered by untrimmed read sequence </summary> <br>
+<embed src= TVheatmap_S_5p.pdf type="application/pdf" width="100%" height="600px" />
+<br></details><br>
+
+<hr/><details> <summary> Heatmap, 5'-trimmed reads clustered by quality patterns </summary> <br>
+<embed src= TVheatmap_Q_5p.pdf type="application/pdf" width="100%" height="600px" />
+<br></details><br>
+
+<hr/><details> <summary> Heatmaps, 5'-trimmed reads clustered by local reference sequence </summary> <br>
+<embed src= TVheatmap_G_5p.pdf type="application/pdf" width="100%" height="600px" />
+<br></details><br>
+
+<hr/><details> <summary> Individual read trimming, grouped by trimming class </summary> <br>
+<embed src= indiv_reads.pdf type="application/pdf" width="100%" height="600px" />
+<br></details><br>
+
+</div><hr/></div><br><br>

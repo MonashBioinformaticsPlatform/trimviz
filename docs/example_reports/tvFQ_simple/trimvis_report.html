@@ -25,24 +25,40 @@
         h100 { font-family:"Courier New"; display:inline }
     </style>
     <div class="verdanafont">
-    <h1> Trimviz trimming summary: Fastq-fastq comparison mode </h1> <br><hr/><br><div><br> <h3> Input files: </h3>-u (input fastq file): <h100> ../tv_data/pre_trimmed_R1.fastq.gz </h100> <br>-t (trimmed fastq file): <h100> ../tv_data/post_trimmed_R1.fastq.gz </h100> <br></div>
-                   <br>
-                   <hr/> 
-    <h3> Summary of trimming frequency </h3>
-    <table class="mytable-marg" ><tr><th><b>Trim class</b></th><th><b>Number of reads</b></th></tr>
-    <tr><th> 3pcut </th><th> 8586 </th><tr><th> 5pcut </th><th> 0 </th><tr><th> generated_warning </th><th> 0 </th><tr><th> indel </th><th> 0 </th><tr><th> removed </th><th> 863 </th><tr><th> uncut </th><th> 40551 </th><tr><th><b>Tot unique</b></th><th><b>50000</b></th></tr></table>
-    <br><hr/><p> <div class="inline-2perline">3p trim position profile: <br><embed src= profile_3pcut.pdf type="application/pdf" width="100%" height="650px" /><br>
-        </div>
-        <div class="inline-2perline">
-        
-                  </div></p><br><hr/>
-                  <div><hr/><details> <summary> Heatmap, 3'-trimmed reads clustered by untrimmed read sequence </summary> <br><embed src= TVheatmap_S_3p.pdf type="application/pdf" width="100%" height="600px" /><br> </details>
-            <br>
-            <hr/><details> <summary> Heatmap, 3'-trimmed reads clustered by quality patterns </summary> <br><embed src= TVheatmap_Q_3p.pdf type="application/pdf" width="100%" height="600px" /><br> </details>
-            <br>
-            <hr/><details> <summary> Individual read trimming, grouped by trimming class </summary> <br><embed src= indiv_reads.pdf type="application/pdf" width="100%" height="600px" /><br> </details>
-            <br>
-            
-                  </div>
-                  <hr/>
-                  </div> <br><br>
+    
+
+<h1> Trimviz trimming summary: Fastq-fastq comparison mode </h1> <br><hr/><br><div>
+
+<h3> Input files: </h3>
+-t (trimmed R1 fastq file): <h100> ../tv_data/post_trimmed_R1.fastq.gz </h100><br>
+-u (input R1 fastq file): <h100> ../tv_data/pre_trimmed_R1.fastq.gz </h100><br></div><br><hr/>
+
+<h3> Summary of trimming frequency </h3> 
+ <table class="mytable-marg" ><tr><th><b>Trim class</b></th><th><b>Number of reads</b></th></tr>
+<tr><th> 3pcut </th><th> 8586 </th>
+<tr><th> 5pcut </th><th> 0 </th>
+<tr><th> generated_warning </th><th> 0 </th>
+<tr><th> indel </th><th> 0 </th>
+<tr><th> removed </th><th> 863 </th>
+<tr><th> uncut </th><th> 40551 </th>
+<tr><th><b>Tot unique</b></th><th><b>50000</b></th></tr>
+</table><br><hr/>
+
+<div class="inline-2perline">
+3p trim position profile: <br><embed src= profile_3pcut.pdf type="application/pdf" width="100%" height="650px" /><br>
+</div><div class="inline-2perline">
+</div><br><hr/><div>
+
+<hr/><details> <summary> Heatmap, 3'-trimmed reads clustered by untrimmed read sequence </summary> <br>
+<embed src= TVheatmap_S_3p.pdf type="application/pdf" width="100%" height="600px" />
+<br></details><br>
+
+<hr/><details> <summary> Heatmap, 3'-trimmed reads clustered by quality patterns </summary> <br>
+<embed src= TVheatmap_Q_3p.pdf type="application/pdf" width="100%" height="600px" />
+<br></details><br>
+
+<hr/><details> <summary> Individual read trimming, grouped by trimming class </summary> <br>
+<embed src= indiv_reads.pdf type="application/pdf" width="100%" height="600px" />
+<br></details><br>
+
+</div><hr/></div><br><br>
