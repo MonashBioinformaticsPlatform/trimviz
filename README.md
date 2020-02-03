@@ -63,11 +63,11 @@ visualize the soft-clipping of reads by an aligner.
     ./trimviz.py FQ -o/-O output_dir -u/-U untrimmed.fq.gz -t/-T trimmed.fq.gz [ -b align.bam -g reference.fa ]
     ./trimviz.py SC -o/-O output_dir -p/-P prealignment.fq.gz -b align.bam -g reference.fa
     
-    trimsviz.py FQ        Fastq-fastq comparison. Bam file and genome fasta file can be optionally given to view the mapping outcomes for trimmed reads.
-    trimsviz.py SC        Treat soft clipping as the trimming of interest. Bam and genome fasta file are required, with only one fastq file.
+    trimviz.py FQ        Fastq-fastq comparison. Bam file and genome fasta file can be optionally given to view the mapping outcomes for trimmed reads.
+    trimviz.py SC        Treat soft clipping as the trimming of interest. Bam and genome fasta file are required, with only one fastq file.
     
     options:
-    -o/--out_dir          Directory for output. If it already exists, an error will be generated.
+    -o/--out_dir          Directory for output. If it already exists, an error will be generated. Report will be out_dir/trimvis_report.html
     -O/--out_dir_fat      Directory for output + temporary files. Choose this option to keep the sub-sampled fastq files.
     -u/--untrimmed_R1     FQ mode: untrimmed Read 1 fastq file. 
     -t/--trimmed_R1       FQ mode: trimmed Read 1 fastq file.
@@ -130,10 +130,10 @@ Trimviz takes a random sample of reads from an untrimmed fastq file, looks up th
 **Soft-clipping mode (SC):**
 Trimviz will visualize the soft-clipping sites of reads that occurs during alignment to a reference genome. This works similar to above except the bam file is treated like a trimmed fastq file. The bam file must be the result of direct alignment of the **(-p/-P)** fastq file, which may or may not have been trimmed prior to alignment.
 
-<br><br>
+<br>
 Trimviz classifies reads into 'uncut', '3pcut' (ie. 3' trimmed), '5pcut' (ie. 5' trimmed), 'removed' (ie. filtered reads in FQ mode; unmapped reads in SC mode) by comparison between pre- and post- trimmed fastq files (or between a fastq file and a bam file in SC mode). Trimviz randomly samples reads from the entire fastq file, thus it has to stream though 2 or 3 large files and may take some time to complete - or you can just skim the top of the fastq files with the -k argument, as long as the read-order is the same. It can accept fastq-files that were output from any trimming tool.    
 <br>
-The Trimviz report includes: 
+The Trimviz report written to out_dir/trimvis_report.html includes: 
 <br> 
 1) Table of the number of reads falling into each of the above read trimming categories. <br>
 2) Read-trimming profiles for a) 3'-trimmed and b) 5'-trimmed reads, if any. Gives a zoomed-out overview of where reads were trimmed in each trimming category. <br>

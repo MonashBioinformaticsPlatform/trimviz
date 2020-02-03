@@ -828,11 +828,11 @@ def print_help ():
     ./trimviz.py FQ -o/-O output_dir -u/-U untrimmed.fq.gz -t/-T trimmed.fq.gz [ -b align.bam -g reference.fa ]
     ./trimviz.py SC -o/-O output_dir -p/-P prealignment.fq.gz -b align.bam -g reference.fa
     
-    trimsviz.py FQ        Fastq-fastq comparison. Bam file and genome fasta file can be optionally given to view the mapping outcomes for trimmed reads.
-    trimsviz.py SC        Treat soft clipping as the trimming of interest. Bam and genome fasta file are required, with only one fastq file.
+    trimviz.py FQ        Fastq-fastq comparison. Bam file and genome fasta file can be optionally given to view the mapping outcomes for trimmed reads.
+    trimviz.py SC        Treat soft clipping as the trimming of interest. Bam and genome fasta file are required, with only one fastq file.
     
     options:
-    -o/--out_dir          Directory for output. If it already exists, an error will be generated.
+    -o/--out_dir          Directory for output. If it already exists, an error will be generated. Report will be out_dir/trimvis_report.html
     -O/--out_dir_fat      Directory for output + temporary files. Choose this option to keep the sub-sampled fastq files.
     -u/--untrimmed_R1     FQ mode: untrimmed Read 1 fastq file. 
     -t/--trimmed_R1       FQ mode: trimmed Read 1 fastq file.
