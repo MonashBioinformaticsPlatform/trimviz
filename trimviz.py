@@ -8,6 +8,7 @@
 # paired-end (+ paired-end overhang -> suggested clipping)
 # test if 'raw' fastq is actually uneven lengths (pretrimmed from seq facility)
 
+from __future__ import print_function
 
 __author__ = 'stuartarcher'
 
@@ -18,10 +19,10 @@ class fastq:
     def __init__(self, f):
         self.f = f
     def __iter__(self): return self
-    def next(self):
+    def __next__(self):
         id = re.sub('\/.+$', '', self.f.next().rstrip()) # remove all after forward slash
         s  = self.f.next().rstrip().upper() # convert to uppercase (<----- maybe change in future? Cutadapt can convert to lowercase instead of trimming, this will be missed)
-        self.f.next()
+        next(self.f)
         q = self.f.next().rstrip()
         #return {'id': id.partition(' ')[0], 'seq': s, 'qual': q}
         return ([id.partition(' ')[0], s, q])
@@ -30,7 +31,7 @@ class dummy_fastq:
     def __init__(self, f):
         self.f = f
     def __iter__(self): return self
-    def next(self):
+    def __next__(self):
         return ''
 
     
@@ -161,7 +162,7 @@ def main():
     ###########################################################################################
     coi = [x for x in coi_raw if x in class_opts]
     if len(coi) < len (coi_raw):
-        print ("Warning, values given in -c should include only %s, comma-separated") % (', '.join(class_opts))
+        print("Warning, values given in -c should include only %s, comma-separated" % ', '.join(class_opts))
     if not cmd_exists('seqtk') and skim <0:
         print(' *** Could not find seqtk executable. Please install seqtk or only use skim mode (-k). Exiting. ***')
         exit()
@@ -196,7 +197,7 @@ def main():
         if len(orig_FN) > 0:
             print('Could not find input fastq file: ' + orig_FN + '. Exiting.')
         else:
-            print ('No input fastq file given (required). Exiting.')
+            print('No input fastq file given (required). Exiting.')
             print_help()
         exit()
     if bam_FN != '':
@@ -204,15 +205,15 @@ def main():
             print('Could not find bam file ' + bam_FN + '. Exiting.')
             exit()
         elif gfasta_FN == '':
-            print ('Bam file is given but could not corresponding genome fasta. Exiting.')
+            print('Bam file is given but could not corresponding genome fasta. Exiting.')
             exit()
         elif not os.path.isfile(gfasta_FN):
-            print ('Bam file is given but could not find corresponding genome fasta file '+ gfasta_FN + '. Exiting.')
+            print('Bam file is given but could not find corresponding genome fasta file '+ gfasta_FN + '. Exiting.')
             exit()
     else:
         if 'indel' in coi:
             coi = [x for x in coi if x != 'indel']
-            print ('Warning: cannot request indel as a trim-class without giving a bam file.')
+            print('Warning: cannot request indel as a trim-class without giving a bam file.')
     if softClipping:
         badOpts = [opt for opt,arg in options if opt in ['-u', '--untrimmed_R1','-U', '--untrimmed_R2','-t', '--trimmed_R1','-T', '--trimmed_R2']]
         if len(badOpts) > 0:
@@ -233,7 +234,7 @@ def main():
             if proc_FN != '':
                 print('Could not find trimmed R1 fastq file ' + proc_FN + '. Exiting.')
             else:
-                print ('No trimmed fastq file given, but this is required in FQ mode. Exiting.')
+                print('No trimmed fastq file given, but this is required in FQ mode. Exiting.')
                 print_help()
             exit()
     if not os.path.isfile(adapt_FN) and adapt_FN != '':
@@ -247,7 +248,7 @@ def main():
     try:
         os.makedirs(out_DN)
     except:
-        print('Error: Could not create output directory %s. Exiting.') % (out_DN)
+        print('Error: Could not create output directory %s. Exiting.' % out_DN)
         exit()   
         
     random.seed(rseed)
@@ -262,7 +263,7 @@ def main():
                 for line in fin:
                     madapt.append(line.rstrip())
         else:
-            print 'Warning. File: ', adapt_FN, ' not found. Not using adapter file. '  # TODO implement this
+            print('Warning. File: ', adapt_FN, ' not found. Not using adapter file. ')  # TODO implement this
     
     
     ###########################################################################################
@@ -278,13 +279,13 @@ def main():
     
     # sample original fq:
     if rid_FN == '':
-        print 'target number of reads (orig fastq): %d' % (target_n_pre)
+        print('target number of reads (orig fastq): %d' % (target_n_pre))
         pcnt_sgn = """%"""
         # split output into a temp fq file (tmpPre1_FN) and a readname list file (readIDs1_FN)
         # remove @, anything after a space in readname; append a tab char to improve fgrep specificity for bam-searching
         # note: sed 's/[ \/].*$//' messes up seqtk search of fastqs with RNs ending in /1 or /2 (but is required to search bams so will create separate file of RIDs for that; see cmd3B)
         if skim != -1:
-            print 'skimming from top of fastq files after skipping first %d reads' % (skim)
+            print('skimming from top of fastq files after skipping first %d reads' % (skim))
             cmd3 = "zcat %s | head -n %d | tail -n %d | tee >(awk '1 == NR %s 4' | sed 's/@//'  | sed 's/[ ].*$//' | sed 's/$/\t/' > %s ) | gzip > %s" % (pipes.quote(orig_FN),
                                                                                                                           target_n_pre*4 + skim*4,
                                                                                                                           target_n_pre*4,
@@ -300,23 +301,23 @@ def main():
                                                                                                                           pipes.quote(tmpPre1_FN))       
     else: # user-specified RIDs
         if skim != -1:
-            print "Warning: -k option over-ridden by user supplying a read-id file."
+            print("Warning: -k option over-ridden by user supplying a read-id file.")
         cmd2 = "cat %s | sed 's/@//'  | sed 's/[ ].*$//' | sed 's/$/\t/' > %s" % (rid_FN, readIDs1_FN) # clean up user-specified rids for seqtk
         with open(out_DN + '/trimVisTmpFiles/tmp_bash2.sh', 'w') as fout:
-            print >> fout, cmd2
+            print(cmd2, file=fout)
         sout2 = subprocess.check_output(['bash', out_DN + '/trimVisTmpFiles/tmp_bash2.sh'])
-        print (sout2)
+        print(sout2)
         cmd3 = "seqtk subseq %s %s | gzip > %s " % (pipes.quote(orig_FN), readIDs1_FN, tmpPre1_FN)
     
     with open(out_DN + '/trimVisTmpFiles/tmp_bash3.sh', 'w') as fout:
-            print >> fout, cmd3
+            print(cmd3, file=fout)
             
     # retrieve from ORIG FQ using seqtk
-    print ('sampling from original fastq...')
+    print('sampling from original fastq...')
     sout3 = subprocess.check_output(['bash', out_DN + '/trimVisTmpFiles/tmp_bash3.sh'])
     # this either runs seqtk sample -> readIDs1_FN & tmpPre1_FN; or, if rid_file (-r) is already specified, just seqtk subseq -> tmpPre1_FN
     # either way, files readIDs1_FN & tmpPre1_FN now exist
-    print (sout3)
+    print(sout3)
     
     # get rIDs in dict for python and load results into dict 'pre': pre[rID] = [seq, qual]
     pre = dict()
@@ -340,15 +341,15 @@ def main():
         cmd4A = 'samtools view -H %s > %s' % (bam_FN,  sub_bamFN)
         cmd4B = 'samtools view %s | fgrep -f %s | awk \'NF > 8{print} 1\' >> %s' % (bam_FN, readIDs1_FN2, sub_bamFN)  # |  cut -f1-6,9
         with open(out_DN + '/trimVisTmpFiles/tmp_bash6.sh', 'w') as fout:
-            print >> fout, cmd3B
-            print >> fout, 'sleep 1'
-            print >> fout, cmd4A
-            print >> fout, 'sleep 1'
-            print >> fout, cmd4B
-        print ('searching bam file using samtools and fgrep...')
+            print(cmd3B, file=fout)
+            print('sleep 1', file=fout)
+            print(cmd4A, file=fout)
+            print('sleep 1', file=fout)
+            print(cmd4B, file=fout)
+        print('searching bam file using samtools and fgrep...')
         #time.sleep(1)
         sout = subprocess.check_output(['bash', out_DN + '/trimVisTmpFiles/tmp_bash6.sh'])
-        print ('getting fasta file...')
+        print('getting fasta file...')
         # shove fasta file into giant dictionary
         fastaD=dict()
         currChr=''
@@ -376,10 +377,10 @@ def main():
         else:
             cmd5 = "seqtk subseq %s %s | gzip > %s " % (proc_FN, readIDs1_FN, tmpPost1_FN)
         with open(out_DN + '/trimVisTmpFiles/tmp_bash4.sh', 'w') as fout:
-            print >> fout, cmd5
-        print ('Finding the reads in trimmed fastq file...')
+            print(cmd5, file=fout)
+        print('Finding the reads in trimmed fastq file...')
         sout4 = subprocess.check_output(['bash', out_DN + '/trimVisTmpFiles/tmp_bash4.sh'])
-        print (sout4)
+        print(sout4)
         
         # load results into dict 'post'
         post = dict()
@@ -400,7 +401,7 @@ def main():
         # check that post is now emptied out
         if not skim:
             for r in post:
-                print "WARNING: read ---- " + r + "  ---- not found in pre-trimmed data."
+                print("WARNING: read ---- " + r + "  ---- not found in pre-trimmed data.")
                 #rid_class['generated_warning'].extend([r]) # actually can't plot this (no 'pre-trimmed' entry)!
             
             
@@ -422,13 +423,13 @@ def main():
                     both[r].append(fps[0] + 1)                # [ both[r][4]=start rel pre    ...so 3' trim len = (len([2])- [5]
                     both[r].append(fps[0] + 1 + len(rdat[0])) # for len=1, start, end on n,n+1 nucleotides
                     if len(fps)> 1:
-                        print "Warning - ambiguous trimming (multiple possible trim-points) encountered for read %s" % (r)
-                        print len(fps)
-                        print rdat
+                        print("Warning - ambiguous trimming (multiple possible trim-points) encountered for read %s" % (r))
+                        print(len(fps))
+                        print(rdat)
                         rid_class['generated_warning'].extend([r])
                         #both.pop(r)
                 else:
-                    print "WARNING: read ", r, " does not have all associated data, or the trimmed sequence was not a substring of full sequence."
+                    print("WARNING: read ", r, " does not have all associated data, or the trimmed sequence was not a substring of full sequence.")
                     removeread.append(r)
             else:
                 both[r].extend([1,1]) # add dummy values for 5'cut and 3' cut site
@@ -549,7 +550,7 @@ def main():
                 elif cigTuples2[cti][0] == 0 or cigTuples2[cti][0] == 4: # "M" / matching segment or "S" soft-clipped: add the gblock
                     gblocks2.append(gblocks[gblocks_pos])
                     if not (len(gblocks2[-1])) == cigTuples2[cti][1]:
-                        print ('Warning: genomic block length doesnt match cigar operation (readname: %s )') % ( id2 )
+                        print('Warning: genomic block length doesnt match cigar operation (readname: %s )' % id2)
                         rid_class['generated_warning'].extend([ id2 ])
                     gblocks_pos +=1
 
@@ -588,7 +589,7 @@ def main():
                 both[id2] = newBothEntry
                 
         if len(seqsNotFound) > 0:
-            print "Warning;  reference chromosome/contig names in bam file were not in fasta file. These are: " + ', '.join([ x for x in set(seqsNotFound)]) 
+            print("Warning;  reference chromosome/contig names in bam file were not in fasta file. These are: " + ', '.join([ x for x in set(seqsNotFound)])) 
        
     ##########################################################################
     #   MAIN   Part 4 classify reads into 5pcut, 3pcut, uncut and removed
@@ -623,15 +624,15 @@ def main():
             rs = random.sample(ids, k=min( len(ids) , nvis ))
             toPlot = toPlot + rs
     else:
-        toPlot = random.sample(both.keys(), nvis)
-    print ("Trim-classification results from the random sample of %d reads") % (target_n_pre)
+        toPlot = random.sample(list(both.keys()), nvis)
+    print("Trim-classification results from the random sample of %d reads" % target_n_pre)
     trimClassTbl = dict()
     for cls in rid_class.keys():
         ncls = len(rid_class[cls])
         if balance and ncls < nvis:
-            print ("There were %d reads classed as %s. (Warning: this was less than requested for plotting (-v). Increase sample size using -n)") % (ncls , cls)
+            print("There were %d reads classed as %s. (Warning: this was less than requested for plotting (-v). Increase sample size using -n)" % (ncls , cls))
         else:
-            print ("There were %d reads classed as %s.") % (ncls , cls)
+            print("There were %d reads classed as %s." % (ncls , cls))
         trimClassTbl[cls] = ncls
 
     ###  5B:  output the data file for 1-by-1 read vis ###
@@ -642,7 +643,7 @@ def main():
         line.extend(madapt)
         if not bam_FN == '':
             line.append('genomic_seq')
-        print >> fout, '\t'.join(line)
+        print('\t'.join(line), file=fout)
         j=0
         for r in toPlot:
             j+=1
@@ -652,13 +653,13 @@ def main():
                 line = [ str(x) for x in [   r, (i+1), rdat[2][i], ord(rdat[3][i])-34, rdat[4], rdat[5], trim_class ]  ]
                 for ad in range(0, len(madapt)):
                     if 6+ad >= len(rdat):
-                        print "it is rdat!"
-                        print ad
-                        print r
-                        print j
-                        print rdat
+                        print("it is rdat!")
+                        print(ad)
+                        print(r)
+                        print(j)
+                        print(rdat)
                     if i >= len (rdat[6+ad]):
-                        print "it is string index!"
+                        print("it is string index!")
                     line.append(str(ord(rdat[6+ad][i])-34))  # convert ascii+33 -> zero-based num
                 if bam_FN != '':
                     if r in bamInfo:
@@ -668,7 +669,7 @@ def main():
                             line.extend(['N'])
                     else:
                         line.extend(['N'])
-                print >> fout, '\t'.join(line)
+                print('\t'.join(line), file=fout)
     #print "FILE1 READY:"
     #print tempfname
   
@@ -680,11 +681,11 @@ def main():
     difflens = 0
     for cls, clsfile in runsheet.items():
         with open(clsfile, 'w') as fout:
-            bs = range(aggFlank*2+1)
+            bs = list(range(aggFlank*2+1))
             if bam_FN == '':
-                print >> fout, '\t'.join(['readID', 'fpCutPos', 'tpCutPos'] + ['s'+str(i+1) for i in bs] + ['q'+str(i+1) for i in bs])
+                print('\t'.join(['readID', 'fpCutPos', 'tpCutPos'] + ['s'+str(i+1) for i in bs] + ['q'+str(i+1) for i in bs]), file=fout)
             else:
-                print >> fout, '\t'.join(['readID', 'fpCutPos', 'tpCutPos'] + ['s'+str(i+1) for i in bs] + ['q'+str(i+1) for i in bs] + ['g'+str(i+1) for i in bs])
+                print('\t'.join(['readID', 'fpCutPos', 'tpCutPos'] + ['s'+str(i+1) for i in bs] + ['q'+str(i+1) for i in bs] + ['g'+str(i+1) for i in bs]), file=fout)
             for r in rid_class[cls]:
                 rdat=both[r] # both[id] = [0]-postSeq [1]-postQual [2]-preSeq [3]-preQual ("post" is the "-t" fastq file; "pre" is the "-u" fastq file)
                              # [4] 5' cut site, dist from start of raw read [5] 3' cut site, dist from START??? of raw read 
@@ -707,21 +708,21 @@ def main():
                             rid_class['generated_warning'].extend([r])
                     elif not len (gSeg) == len (rdat[2]):    # gSeg has already been adjusted in length to expand and match the -u read, if there was trimming between -u and -t
                         difflens += 1
-                    print >> fout, '\t'.join([r, str(rdat[4]-1), str(rdat[5]-1)] + ps + [str(ord(x)) for x in pq] + gs)
+                    print('\t'.join([r, str(rdat[4]-1), str(rdat[5]-1)] + ps + [str(ord(x)) for x in pq] + gs), file=fout)
                 else:
-                    print >> fout, '\t'.join([r, str(rdat[4]-1), str(rdat[5]-1)] + ps + [str(ord(x)) for x in pq])  # N's -> 78. Highest legit q-val is 'J' (-> 74)
+                    print('\t'.join([r, str(rdat[4]-1), str(rdat[5]-1)] + ps + [str(ord(x)) for x in pq]), file=fout)  # N's -> 78. Highest legit q-val is 'J' (-> 74)
     
     if difflens > 0:
         if softClipping:
-            print ( " ---- " )
-            print ( "Warning: %d reads showed read length not equal between -u fastq and bam file. Was there an intervening read-trimming step? If not, it is not just soft-clipping being visualized." ) % difflens
-            print ( "This may have unexpected effects. In SC mode it is strongly recommended to use only the fastq file that was directly input to the aligner as the -u argument." )
-            print ( " ---- " )
+            print(" ---- ")
+            print("Warning: %d reads showed read length not equal between -u fastq and bam file. Was there an intervening read-trimming step? If not, it is not just soft-clipping being visualized." % difflens)
+            print("This may have unexpected effects. In SC mode it is strongly recommended to use only the fastq file that was directly input to the aligner as the -u argument.")
+            print(" ---- ")
         else:
-            print ( " ---- " )
-            print ("Warning: %d reads showed read length not equal between -u fastq and bam file, and not accounted for by trimming between -u and -t. Was there an intervening read-trimming step?" ) % difflens
-            print ( "This may have unexpected effects. In FQ mode it is strongly recommended to use only the fastq file that was directly input to the aligner as the -t argument.")
-            print ( " ---- " )
+            print(" ---- ")
+            print("Warning: %d reads showed read length not equal between -u fastq and bam file, and not accounted for by trimming between -u and -t. Was there an intervening read-trimming step?" % difflens)
+            print( "This may have unexpected effects. In FQ mode it is strongly recommended to use only the fastq file that was directly input to the aligner as the -t argument.")
+            print(" ---- ")
  
         
     ###########################
@@ -730,10 +731,10 @@ def main():
     cmd6 = 'Rscript ' +'./graph_ts.R '+ out_DN + ' ' + str(maxAggN) + ' ' + str(gdiff)  #os.curdir
 
     #cmd6 = 'Rscript ' +'./graph_ts.R '+ tempfname + ' ' + out_DN + '/' + gr_FN + ' ' + out_DN +'/' + aggGr_FN + ' ' + str(maxAggN)  #os.curdir
-    print (cmd6)
+    print(cmd6)
     rout = subprocess.check_output(cmd6, shell=True)
     
-    print "R stdout:", rout
+    print("R stdout:", rout)
     
     ###########################
     # << MAKE HTML REPORT   >>#
@@ -745,7 +746,7 @@ def main():
         mode = "Fastq-fastq comparison mode"
     report = makeReport(mode, out_DN, trimClassTbl, len(pre), Uorig_FN1, Uproc_FN1, Uorig_FN2, Uproc_FN2, bam_FN, gfasta_FN)
     with open (out_DN+'/trimvis_report.html', 'w') as fout:
-        print >> fout, report
+        print(report, file=fout)
    
 # <<<<<<<<<<<<<<<<< END MAIN >>>>>>>>>>>>>>>>>>>
 
@@ -768,8 +769,8 @@ def mfind (text, query):
 
 def padstr(s, offset, flnk, r):
     if offset > len (s):
-        print "warning, offset exceeds len s. ^%s^ " % (r)
-        print str(offset) + "   " + s
+        print("warning, offset exceeds len s. ^%s^ " % (r))
+        print(str(offset) + "   " + s)
     leftpad=max(0, flnk-offset)
     rightpad=max(0, offset + flnk - len(s))
     leftstr= 'N'*leftpad + s[max(0,offset-flnk):offset]
@@ -815,7 +816,7 @@ def flagDecoder (flag):
 
     
 def print_help ():
-    print '''
+    print('''
     Trimviz takes a random sample of untrimmed reads from a fastq file,
     looks up the same reads in a trimmed fastq file and visualises the
     trimmed reads with respect to surrounding base call quality values and
@@ -872,7 +873,7 @@ def print_help ():
     getopt, subprocess, random, re, sys, os, gzip, pipes, pysam
     R libraries:
     ggplot2, ape, reshape2, gridExtra
-    '''
+    ''')
 
 def makeReport(mode, out_DN, trimClassTbl, lenpre, Uorig_FN1, Uproc_FN1, Uorig_FN2, Uproc_FN2, bam_FN, gfasta_FN):     
     report=list()                                                                            
@@ -919,12 +920,12 @@ def makeReport(mode, out_DN, trimClassTbl, lenpre, Uorig_FN1, Uproc_FN1, Uorig_F
                  '-g (genome fasta file)':gfasta_FN})
     
     htmlblock ='<h3> Input files: </h3>\n'
-    htmlblock +='<br>\n'.join( (k + ': <h100> ' + v + ' </h100>') for (k, v) in VAR1.items() if not v=='')
+    htmlblock +='<br>\n'.join( (k + ': <h100> ' + v + ' </h100>') for k, v in VAR1.items() if not v=='')
     htmlblock += '<br></div><br><hr/>'
     report.append (htmlblock)
 
     htmlTbl = '<h3> Summary of trimming frequency </h3> \n <table class="mytable-marg" ><tr><th><b>Trim class</b></th><th><b>Number of reads</b></th></tr>\n'
-    for (cls, ncls) in trimClassTbl.items():
+    for cls, ncls in trimClassTbl.items():
         htmlTbl += '<tr><th> %s </th><th> %d </th>\n' % (cls , ncls)
     htmlTbl += '<tr><th><b>Tot unique</b></th><th><b>%d</b></th></tr>\n' % (lenpre)     
     htmlTbl += '</table><br><hr/>'
