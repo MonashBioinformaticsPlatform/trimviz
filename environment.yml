@@ -1,0 +1,15 @@
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - pysam=0.15.4=py37h4ace0ce_0
+  - python=3.7.6=h5c2c468_2
+  - samtools=1.7=1
+  - seqtk=1.3=h2573ce8_2
+  - grep=2.14=h1de35cc_3
+  - r=3.6=r36_1003
+  - r-ggplot2=3.2.1=r36h6115d3f_0
+  - r-ape=5.3=r36hf99fc2c_1
+  - r-reshape2=1.4.3=r36hf99fc2c_1004
+  - r-gridextra=2.3=r36h6115d3f_1002

@@ -46,6 +46,13 @@ suggesting that they originated elsewhere.
 
  <br>
 
+#### Installing dependencies
+
+```bash
+conda env create -n trimviz -f requirements.yml
+conda activate trimviz
+```
+
 ### Command-line arguments:
 
 Trimviz takes a random sample of untrimmed reads from a fastq file,
