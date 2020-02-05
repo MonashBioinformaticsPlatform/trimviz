@@ -20,12 +20,13 @@ class fastq:
         self.f = f
     def __iter__(self): return self
     def __next__(self):
-        id = re.sub('\/.+$', '', self.f.next().rstrip()) # remove all after forward slash
-        s  = self.f.next().rstrip().upper() # convert to uppercase (<----- maybe change in future? Cutadapt can convert to lowercase instead of trimming, this will be missed)
+        id = re.sub('\/.+$', '', next(self.f).rstrip().decode()) # remove all after forward slash
+        s  = next(self.f).rstrip().decode().upper() # convert to uppercase (<----- maybe change in future? Cutadapt can convert to lowercase instead of trimming, this will be missed)
         next(self.f)
-        q = self.f.next().rstrip()
+        q = next(self.f).rstrip().decode()
         #return {'id': id.partition(' ')[0], 'seq': s, 'qual': q}
         return ([id.partition(' ')[0], s, q])
+    next = __next__
     
 class dummy_fastq:
     def __init__(self, f):
@@ -305,7 +306,7 @@ def main():
         cmd2 = "cat %s | sed 's/@//'  | sed 's/[ ].*$//' | sed 's/$/\t/' > %s" % (rid_FN, readIDs1_FN) # clean up user-specified rids for seqtk
         with open(out_DN + '/trimVisTmpFiles/tmp_bash2.sh', 'w') as fout:
             print(cmd2, file=fout)
-        sout2 = subprocess.check_output(['bash', out_DN + '/trimVisTmpFiles/tmp_bash2.sh'])
+        sout2 = subprocess.check_output(['bash', out_DN + '/trimVisTmpFiles/tmp_bash2.sh']).decode()
         print(sout2)
         cmd3 = "seqtk subseq %s %s | gzip > %s " % (pipes.quote(orig_FN), readIDs1_FN, tmpPre1_FN)
     
@@ -314,7 +315,7 @@ def main():
             
     # retrieve from ORIG FQ using seqtk
     print('sampling from original fastq...')
-    sout3 = subprocess.check_output(['bash', out_DN + '/trimVisTmpFiles/tmp_bash3.sh'])
+    sout3 = subprocess.check_output(['bash', out_DN + '/trimVisTmpFiles/tmp_bash3.sh']).decode()
     # this either runs seqtk sample -> readIDs1_FN & tmpPre1_FN; or, if rid_file (-r) is already specified, just seqtk subseq -> tmpPre1_FN
     # either way, files readIDs1_FN & tmpPre1_FN now exist
     print(sout3)
@@ -348,7 +349,7 @@ def main():
             print(cmd4B, file=fout)
         print('searching bam file using samtools and fgrep...')
         #time.sleep(1)
-        sout = subprocess.check_output(['bash', out_DN + '/trimVisTmpFiles/tmp_bash6.sh'])
+        sout = subprocess.check_output(['bash', out_DN + '/trimVisTmpFiles/tmp_bash6.sh']).decode()
         print('getting fasta file...')
         # shove fasta file into giant dictionary
         fastaD=dict()
@@ -379,7 +380,7 @@ def main():
         with open(out_DN + '/trimVisTmpFiles/tmp_bash4.sh', 'w') as fout:
             print(cmd5, file=fout)
         print('Finding the reads in trimmed fastq file...')
-        sout4 = subprocess.check_output(['bash', out_DN + '/trimVisTmpFiles/tmp_bash4.sh'])
+        sout4 = subprocess.check_output(['bash', out_DN + '/trimVisTmpFiles/tmp_bash4.sh']).decode()
         print(sout4)
         
         # load results into dict 'post'
@@ -399,7 +400,7 @@ def main():
                 both[id] = ['', ''] + rdat
                 #rid_class['removed'].extend([id])
         # check that post is now emptied out
-        if not skim:
+        if skim == -1:
             for r in post:
                 print("WARNING: read ---- " + r + "  ---- not found in pre-trimmed data.")
                 #rid_class['generated_warning'].extend([r]) # actually can't plot this (no 'pre-trimmed' entry)!
@@ -732,7 +733,7 @@ def main():
 
     #cmd6 = 'Rscript ' +'./graph_ts.R '+ tempfname + ' ' + out_DN + '/' + gr_FN + ' ' + out_DN +'/' + aggGr_FN + ' ' + str(maxAggN)  #os.curdir
     print(cmd6)
-    rout = subprocess.check_output(cmd6, shell=True)
+    rout = subprocess.check_output(cmd6, shell=True).decode()
     
     print("R stdout:", rout)
     
