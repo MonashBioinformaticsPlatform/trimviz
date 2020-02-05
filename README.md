@@ -46,13 +46,6 @@ suggesting that they originated elsewhere.
 
  <br>
 
-#### Installing dependencies
-
-```bash
-conda env create -n trimviz -f requirements.yml
-conda activate trimviz
-```
-
 ### Command-line arguments:
 
 Trimviz takes a random sample of untrimmed reads from a fastq file,
@@ -109,27 +102,52 @@ visualize the soft-clipping of reads by an aligner.
 
 ### Dependencies:
 
-**Command-line programs:**
+#### Installing dependencies
 
-Rscript <br>
-seqtk <br>
-samtools <br>
-zcat <br>
-fgrep <br>
+Dependencies are most easily installed using a Conda environment:
+```bash
+conda env create -n trimviz -f requirements.yml
+conda activate trimviz
+```
 
-**python libraries:**
+#### Command-line programs:
 
-getopt, subprocess, random, re, sys, os, gzip, pipes, pysam
+* Rscript
+* seqtk
+* samtools
+* zcat
+* fgrep
 
-**R libraries:**
+#### Python libraries:
 
-ggplot2, ape, reshape2, gridExtra
+* pysam
 
-Tested with R3.6.0 and Python 2.7.6
+#### R libraries:
+
+* ggplot2
+* ape
+* reshape2
+* gridExtra
+
+Tested with R3.6.0 and Python 2.7.6 or 3.7.6
 
 <br>
 
-### Details:
+### Docker:
+
+Building the Docker image:
+```bash
+docker build -t trimviz:latest .
+```
+
+Using the Docker container:
+```
+docker run -v $PWD:/my_reads trimviz:latest -h
+```
+where the current directory will be accessible as `/my_reads` inside the container (so that trimviz can access your 
+FASTQs from inside the container).
+
+### Trimviz analysis details:
 
 **Fastq-fastq mode (FQ):**
 Trimviz takes a random sample of reads from an untrimmed fastq file, looks up the same reads in a trimmed fastq file and visualises the trimming sites with respect to surrounding base call quality values, adapter sequence, and, if a bam file is given, downstream alignment context. Bam file must be the result of aligning the **trimmed (-t/-T)** fastq file. However Trimviz will look back and extract the genomic region that **would have been covered by the entire _untrimmed_ read if it had aligned at the same place**, thus it also needs a fasta file of the genome to retrieve some extra flanking sequence. This assists in determining whether the untrimmed reads would have mapped equally well or whether too many errors would be introduced (especially with `--diff` mode).
