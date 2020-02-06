@@ -13,6 +13,10 @@ from __future__ import print_function
 __author__ = 'stuartarcher'
 
 import getopt, subprocess, random, re, sys, os, gzip, pipes, pysam  #tempfile, time
+from os import path
+
+path_to_script = path.realpath(__file__)
+path_to_graph_ts = path.join(path.dirname(path_to_script), 'graph_ts.R')
 
 # An iterator for fastq files.  Takes a open file object.  Returns a dict
 class fastq:
@@ -729,10 +733,11 @@ def main():
     ###########################
     # << CALL R SCRIPT HERE >>#
     ###########################
-    cmd6 = 'Rscript ' +'./graph_ts.R '+ out_DN + ' ' + str(maxAggN) + ' ' + str(gdiff)  #os.curdir
 
-    #cmd6 = 'Rscript ' +'./graph_ts.R '+ tempfname + ' ' + out_DN + '/' + gr_FN + ' ' + out_DN +'/' + aggGr_FN + ' ' + str(maxAggN)  #os.curdir
-    print(cmd6)
+
+    cmd6 = ' '.join(['Rscript', path_to_graph_ts, out_DN, str(maxAggN), str(gdiff)])  #os.curdir
+
+    print('command for plotting: "' + cmd6 + '"')
     rout = subprocess.check_output(cmd6, shell=True).decode()
     
     print("R stdout:", rout)

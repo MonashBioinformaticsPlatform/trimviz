@@ -135,17 +135,20 @@ Tested with R3.6.0 and Python 2.7.6 or 3.7.6
 
 ### Docker:
 
-Building the Docker image:
+With Docker, you can bypass dependency installation by building the trimviz Docker image:
 ```bash
 docker build -t trimviz:latest .
 ```
+Note: include the dot!
 
-Using the Docker container:
+#### Using Trimviz from within the Docker container:
+The simplest way is to place all input fastq/bam/fasta files in the one working directory, `cd` to that directory and allow the container access to it by passing its absolute path (i.e. `$PWD`) as an alias (here,`tvwd`).
+```bash
+docker run -v $PWD:/tvwd trimviz:latest FQ -u tvwd/untrimmed.fastq.gz -t tvwd/trimmed.fastq.gz -o tvwd/new_tv_out1  
 ```
-docker run -v $PWD:/my_reads trimviz:latest -h
-```
-where the current directory will be accessible as `/my_reads` inside the container (so that trimviz can access your 
-FASTQs from inside the container).
+The current host directory will be accessible as `/tvwd` inside the container (sub-directories as `tvwd/subdir/`), so that trimviz can access your fastqs etc. from inside the container and also create its output directory. Note: Docker requires an absolute path for the host system's nominated working directory.
+
+<br>
 
 ### Trimviz analysis details:
 
