@@ -102,14 +102,6 @@ visualize the soft-clipping of reads by an aligner.
 
 ### Dependencies:
 
-#### Installing dependencies
-
-Dependencies are most easily installed using a Conda environment:
-```bash
-conda env create -n trimviz -f requirements.yml
-conda activate trimviz
-```
-
 #### Command-line programs:
 
 * Rscript
