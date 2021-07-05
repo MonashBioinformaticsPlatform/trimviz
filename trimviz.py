@@ -354,21 +354,21 @@ def main():
         print('searching bam file using samtools and fgrep...')
         #time.sleep(1)
         sout = subprocess.check_output(['bash', out_DN + '/trimVisTmpFiles/tmp_bash6.sh']).decode()
-        print('getting fasta file...')
-        # shove fasta file into giant dictionary
-        fastaD=dict()
-        currChr=''
-        currSeq=''
-        with open(gfasta_FN, 'r') as fastaIn:
-            for line in fastaIn:
-                if line.startswith('>'):
-                    if currChr != '':
-                        fastaD[currChr]=currSeq
-                    currChr=line.rstrip()[1:]
-                    currSeq=''
-                else:
-                    currSeq=currSeq+line.rstrip()
-            fastaD[currChr]=currSeq
+        print('finished searching bam file.')
+        # # shove fasta file into giant dictionary
+        # fastaD=dict()
+        # currChr=''
+        # currSeq=''
+        # with open(gfasta_FN, 'r') as fastaIn:
+        #     for line in fastaIn:
+        #         if line.startswith('>'):
+        #             if currChr != '':
+        #                 fastaD[currChr]=currSeq
+        #             currChr=line.rstrip()[1:]
+        #             currSeq=''
+        #         else:
+        #             currSeq=currSeq+line.rstrip().upper()
+        #     fastaD[currChr]=currSeq
     
     
     ####################################################################################
@@ -559,7 +559,7 @@ def main():
                         rid_class['generated_warning'].extend([ id2 ])
                     gblocks_pos +=1
 
-            gSeg = lpad + ''.join(gblocks2) + rpad
+            gSeg = lpad + ''.join(gblocks2).upper() + rpad
             if r.is_reverse:
                 gSeg = srevcomp(gSeg)  # revcomp the alignment, because in viz everything is relative to the read orientation
                 joinLocs=[x[0] for x in refBlocks[::-1]]
