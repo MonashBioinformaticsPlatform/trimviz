@@ -12,11 +12,18 @@ from __future__ import print_function
 
 __author__ = 'stuartarcher'
 
-import getopt, subprocess, random, re, sys, os, gzip, pipes, pysam  #tempfile, time
+import getopt, subprocess, random, re, sys, os, gzip, pysam  #tempfile, time
 from os import path
 
+try:
+    from shlex import quote as cmd_quote
+except ImportError:
+    from pipes import quote as cmd_quote
+
 path_to_script = path.realpath(__file__)
-path_to_graph_ts = path.join(path.dirname(path_to_script), 'graph_ts.R')
+path_to_repo_dir = path.dirname(path_to_script) # to find .renv
+path_to_Rlibs = path.join(path_to_repo_dir, 'Rlibs') # to install and cache the Rlibs once only, in the repo folder
+path_to_graph_ts = path.join(path_to_repo_dir, 'graph_ts.R')
 
 # An iterator for fastq files.  Takes a open file object.  Returns a dict
 class fastq:
@@ -49,7 +56,7 @@ def main():
         softClipping = False
     else:
         softClipping = True
-        
+    
     options, remainder = getopt.getopt(sys.argv[2:], 'u:p:t:U:P:T:o:O:b:g:c:n:v:w:a:A:f:g:r:s:k:Rzedh', ['untrimmed_R1=',
                                                                                    'prealign_R1=',
                                                                                    'trimmed_R1=',
@@ -291,19 +298,19 @@ def main():
         # note: sed 's/[ \/].*$//' messes up seqtk search of fastqs with RNs ending in /1 or /2 (but is required to search bams so will create separate file of RIDs for that; see cmd3B)
         if skim != -1:
             print('skimming from top of fastq files after skipping first %d reads' % (skim))
-            cmd3 = "zcat %s | head -n %d | tail -n %d | tee >(awk '1 == NR %s 4' | sed 's/@//'  | sed 's/[ ].*$//' | sed 's/$/\t/' > %s ) | gzip > %s" % (pipes.quote(orig_FN),
+            cmd3 = "zcat %s | head -n %d | tail -n %d | tee >(awk '1 == NR %s 4' | sed 's/@//'  | sed 's/[ ].*$//' | sed 's/$/\t/' > %s ) | gzip > %s" % (cmd_quote(orig_FN),
                                                                                                                           target_n_pre*4 + skim*4,
                                                                                                                           target_n_pre*4,
                                                                                                                           pcnt_sgn,
                                                                                                                           readIDs1_FN,
-                                                                                                                          pipes.quote(tmpPre1_FN))
+                                                                                                                          cmd_quote(tmpPre1_FN))
         else:
             cmd3 = "seqtk sample -s%d %s %d | tee >(awk '1 == NR %s 4' | sed 's/@//'  | sed 's/[ ].*$//' | sed 's/$/\t/' > %s ) | gzip > %s" % (rseed,
-                                                                                                                          pipes.quote(orig_FN),
+                                                                                                                          cmd_quote(orig_FN),
                                                                                                                           target_n_pre,
                                                                                                                           pcnt_sgn,
                                                                                                                           readIDs1_FN,
-                                                                                                                          pipes.quote(tmpPre1_FN))       
+                                                                                                                          cmd_quote(tmpPre1_FN))       
     else: # user-specified RIDs
         if skim != -1:
             print("Warning: -k option over-ridden by user supplying a read-id file.")
@@ -312,7 +319,7 @@ def main():
             print(cmd2, file=fout)
         sout2 = subprocess.check_output(['bash', out_DN + '/trimVisTmpFiles/tmp_bash2.sh']).decode()
         print(sout2)
-        cmd3 = "seqtk subseq %s %s | gzip > %s " % (pipes.quote(orig_FN), readIDs1_FN, tmpPre1_FN)
+        cmd3 = "seqtk subseq %s %s | gzip > %s " % (cmd_quote(orig_FN), readIDs1_FN, tmpPre1_FN)
     
     with open(out_DN + '/trimVisTmpFiles/tmp_bash3.sh', 'w') as fout:
             print(cmd3, file=fout)
@@ -735,7 +742,7 @@ def main():
     ###########################
 
 
-    cmd6 = ' '.join(['Rscript', path_to_graph_ts, out_DN, str(maxAggN), str(gdiff)])  #os.curdir
+    cmd6 = ' '.join(['Rscript', path_to_graph_ts, out_DN, str(maxAggN), str(gdiff), str(path_to_repo_dir), str(path_to_Rlibs)])  #os.curdir
 
     print('command for plotting: "' + cmd6 + '"')
     rout = subprocess.check_output(cmd6, shell=True).decode()
@@ -753,8 +760,11 @@ def main():
     report = makeReport(mode, out_DN, trimClassTbl, len(pre), Uorig_FN1, Uproc_FN1, Uorig_FN2, Uproc_FN2, bam_FN, gfasta_FN)
     with open (out_DN+'/trimvis_report.html', 'w') as fout:
         print(report, file=fout)
-   
-# <<<<<<<<<<<<<<<<< END MAIN >>>>>>>>>>>>>>>>>>>
+
+##################################################   
+# <<<<<<<<<<<<<<<<< END MAIN >>>>>>>>>>>>>>>>>>> #
+##################################################
+
 
 def cmd_exists(cmd):
     return any(
@@ -876,9 +886,9 @@ def print_help ():
     zcat
     fgrep
     Python-2 libraries:
-    getopt, subprocess, random, re, sys, os, gzip, pipes, pysam
+    getopt, subprocess, random, re, sys, os, gzip, pysam, (and pipes for older python3 versions)
     R libraries:
-    ggplot2, ape, reshape2, gridExtra
+    ggplot2, ape, reshape2, gridExtra, renv (will attempt to create a custom Rlib inside the trimviz directory for these if they are not installed)
     ''')
 
 def makeReport(mode, out_DN, trimClassTbl, lenpre, Uorig_FN1, Uproc_FN1, Uorig_FN2, Uproc_FN2, bam_FN, gfasta_FN):     

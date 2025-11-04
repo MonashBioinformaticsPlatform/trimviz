@@ -121,11 +121,23 @@ visualize the soft-clipping of reads by an aligner.
 * reshape2
 * gridExtra
 
-Tested with R3.6.0 and Python 2.7.6 or 3.7.6
+Tested with R4.3.3 and Python 2.7.6 / 3.7.6 (Docker branch) or Python 3.12.2 (latest)
+
+<br>
+
+### Installing dependendies:
+
+An example script demonstrating the installation of dependencies using Conda and R-renv is included: `trimviz/setup.sh`
+
+The below Docker container should also work but the Docker branch is not current (built in 2021 with Python 3.7.6). 
 
 <br>
 
 ### Docker:
+
+NOTE: Docker container has not been updated yet, still dates to 2021, tested with R3.6.0 and Python 2.7.6 or 3.7.6
+
+Recommend using conda (and R renv for R packages ggplot2, ape, reshape2 and gridExtra) rather than Docker as of 2025.
 
 With Docker, you can bypass dependency installation by building the trimviz Docker image:
 ```bash

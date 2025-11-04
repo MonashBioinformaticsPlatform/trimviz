@@ -1,4 +1,22 @@
 #!/usr/bin/env Rscript
+
+## Collect arguments
+args <- commandArgs(TRUE)
+if (length(args) != 5){
+  print (args)
+  stop('incorrect number of arguments given to graph_ts.R')
+}
+
+if(F){ # This is the old conda-dependant way
+  # Get Conda env prefix from environment variable
+  conda_lib <- file.path(Sys.getenv("CONDA_PREFIX"), "lib", "R", "library")
+ 
+  # Set it as .libPaths so R uses packages from Conda env first
+  .libPaths(c(conda_lib, .libPaths()))
+} else {
+  .libPaths(args[5]) # find the renv package
+  renv::restore(project = args[4])
+}
 #library(dplyr)
 library(ggplot2)
 library(ape)
@@ -14,11 +32,12 @@ anchorPlot <- function(x, datatype='s', clustby='s', EOI = '3p', gdiff=F){
     x$xalpha=(x$g==x$s)
     ttls2[[clustby]] = '(diff, c.f. read) '
   }
-  gr = ggplot(x, aes_string(x = 'pos', y = ordCol, fill = datatype)) + 
+  #gr = ggplot(x, aes_string(x = 'pos', y = ordCol, fill = datatype)) + 
+  gr = ggplot(x, aes(x = pos, y = .data[[ordCol]], fill = .data[[datatype]])) +
     geom_raster(aes(alpha = as.numeric(pos == 0 | xalpha))) + # | s == 'N'))) + 
     theme_bw() + 
     theme(plot.margin = unit(c(0.2,0.2,0.2,0.2), "cm"), legend.margin=margin(t = 0, unit='cm')) +
-    scale_alpha(range = c(1,0)) + guides(alpha=FALSE)+
+    scale_alpha(range = c(1,0)) + guides(alpha='none') + # alpha=FALSE
     geom_vline(xintercept = 0, linetype='dashed', col='black') + ggtitle(label = paste0(ttls1[[datatype]],ttls2[[clustby]])) +
     xlab(paste0('nucleotide position relative to ',EOI,'-trim site')) + ylab('')
   if (is.numeric(x[[datatype]])){
@@ -37,13 +56,6 @@ anchorPlot <- function(x, datatype='s', clustby='s', EOI = '3p', gdiff=F){
 }
 
 
-
-## Collect arguments
-args <- commandArgs(TRUE)
-if (length(args) != 3){
-  print (args)
-  stop('incorrect number of arguments given to graph_ts.R')
-}
 out_DN = args[1]
 maxAggN = as.integer(args[2])
 gdiff = (as.character(args[3])=='True')
@@ -89,8 +101,8 @@ for (i in 0:floor(length(rnames)/graphchunk)){
     temp$read = substr(temp$read, 21, nchar(as.character(temp$read)))
     temp$read=factor(temp$read, levels = unique(temp$read))
     gr <- ggplot(data=temp, aes(x=position, y=qual, label=seq)) +
-      geom_rect(data= temp, aes(xmax = tp_cutoff-0.5, xmin = fp_cutoff-0.5, ymin = -12, ymax = max(qual)+10), size=0.01, colour = 'white', fill = 'white') +
-      geom_hline(data = data.frame(yint=c(0:5)*10), aes( yintercept = yint), colour = "#DDDDDD", size=0.5) +
+      geom_rect(data= temp, aes(xmax = tp_cutoff-0.5, xmin = fp_cutoff-0.5, ymin = -12, ymax = max(qual)+10), linewidth=0.01, colour = 'white', fill = 'white') +
+      geom_hline(data = data.frame(yint=c(0:5)*10), aes( yintercept = yint), colour = "#DDDDDD", linewidth=0.5) + # size=0.5
       geom_line() + geom_point() + 
       scale_y_continuous(breaks = seq(0,40, by=10)) +
       geom_text(data=temp, mapping=aes(x=position, y=-4, label=seq, colour=consec_adapt_residues), size=2.7, fontface="bold") +
@@ -244,7 +256,7 @@ for (EOI in c('3p','5p')){
   df3=df3[order(df3$anchor),]
   df3$vert=1:nrow(df3)
   pdf()
-  grL <- ggplot(df3) + geom_segment(aes(x=fpCutPos, y=vert, xend=tpCutPos, yend=vert), size=1) + 
+  grL <- ggplot(df3) + geom_segment(aes(x=fpCutPos, y=vert, xend=tpCutPos, yend=vert), linewidth=1) + #size=1) + 
     theme_bw() + theme(panel.grid.minor = element_blank(),
                        panel.grid.major = element_blank())+
                        #axis.text.y=element_blank(),
