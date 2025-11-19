@@ -2,21 +2,23 @@
 
 ## Collect arguments
 args <- commandArgs(TRUE)
-if (length(args) != 5){
+if (length(args) != 4){  
   print (args)
   stop('incorrect number of arguments given to graph_ts.R')
 }
 
-if(F){ # This is the old conda-dependant way
-  # Get Conda env prefix from environment variable
-  conda_lib <- file.path(Sys.getenv("CONDA_PREFIX"), "lib", "R", "library")
+out_DN <- args[1]
+maxAggN <- as.integer(args[2])
+gdiff <- (as.character(args[3])=='True')
+repo_path <- args[4] 
+# Find renv (conda). All other R dependencies should be installed from that.
+# Get Conda env prefix from environment variable
+conda_lib <- file.path(Sys.getenv("CONDA_PREFIX"), "lib", "R", "library")
  
-  # Set it as .libPaths so R uses packages from Conda env first
-  .libPaths(c(conda_lib, .libPaths()))
-} else {
-  .libPaths(args[5]) # find the renv package
-  renv::restore(project = args[4])
-}
+# Set it as .libPaths so R uses packages from Conda env first
+.libPaths(c(conda_lib, .libPaths()))
+
+renv::restore(project = repo_path) # should actually point to trimviz repo (not user's project dir)
 #library(dplyr)
 library(ggplot2)
 library(ape)
@@ -56,9 +58,6 @@ anchorPlot <- function(x, datatype='s', clustby='s', EOI = '3p', gdiff=F){
 }
 
 
-out_DN = args[1]
-maxAggN = as.integer(args[2])
-gdiff = (as.character(args[3])=='True')
 reads_FN = paste0(out_DN, '/trimVisTmpFiles/trimviz_readData.tsv')
 #seq3p_FN = paste0(out_DN, '/trimVisTmpFiles/seq3psites.txt')
 #seq5p_FN = paste0(out_DN, '/trimVisTmpFiles/seq5psites.txt')

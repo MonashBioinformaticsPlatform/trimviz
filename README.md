@@ -9,6 +9,10 @@ For help and dependencies:
 
 ### Quickstart:
 
+*Note: if trimviz is slow, consider using -k argument to speed up analysis of large files*
+
+<br>
+
 **fastq-fastq comparison (trimming analysis):**
 
 `python path/to/trimviz.py FQ -o tv_outdir -u untrimmed_R1.fastq.gz -t trimmed_R1.fastq.gz`
@@ -104,11 +108,10 @@ visualize the soft-clipping of reads by an aligner.
 
 #### Command-line programs:
 
+* conda
 * Rscript
 * seqtk
 * samtools
-* zcat
-* fgrep
 
 #### Python libraries:
 
@@ -121,36 +124,13 @@ visualize the soft-clipping of reads by an aligner.
 * reshape2
 * gridExtra
 
-Tested with R4.3.3 and Python 2.7.6 / 3.7.6 (Docker branch) or Python 3.12.2 (latest)
+Tested with R4.5.2 and Python 3.13.9 (latest)
 
 <br>
 
 ### Installing dependendies:
 
 An example script demonstrating the installation of dependencies using Conda and R-renv is included: `trimviz/setup.sh`
-
-The below Docker container should also work but the Docker branch is not current (built in 2021 with Python 3.7.6). 
-
-<br>
-
-### Docker:
-
-NOTE: Docker container has not been updated yet, still dates to 2021, tested with R3.6.0 and Python 2.7.6 or 3.7.6
-
-Recommend using conda (and R renv for R packages ggplot2, ape, reshape2 and gridExtra) rather than Docker as of 2025.
-
-With Docker, you can bypass dependency installation by building the trimviz Docker image:
-```bash
-docker build -t trimviz:latest .
-```
-Note: include the dot!
-
-#### Using Trimviz from within the Docker container:
-The simplest way is to place all input fastq/bam/fasta files in the one working directory, `cd` to that directory and allow the container access to it by passing its absolute path (i.e. `$PWD`) as an alias (here,`tvwd`).
-```bash
-docker run -v $PWD:/tvwd trimviz:latest FQ -u tvwd/untrimmed.fastq.gz -t tvwd/trimmed.fastq.gz -o tvwd/new_tv_out1  
-```
-The current host directory will be accessible as `/tvwd` inside the container (sub-directories as `tvwd/subdir/`), so that trimviz can access your fastqs etc. from inside the container and also create its output directory. Note: Docker requires an absolute path for the host system's nominated working directory.
 
 <br>
 

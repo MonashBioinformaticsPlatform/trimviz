@@ -12,6 +12,12 @@ from __future__ import print_function
 
 __author__ = 'stuartarcher'
 
+
+import os
+env_name = os.getenv("CONDA_DEFAULT_ENV")
+if not env_name == 'trimViz2025_renv':
+    warn("Conda env is not trimViz2025_renv. If dependency import fails, try running './trimviz/setup.sh' and then 'conda activate trimViz2025_renv' first.")
+
 import getopt, subprocess, random, re, sys, os, gzip, pysam  #tempfile, time
 from os import path
 
@@ -22,7 +28,7 @@ except ImportError:
 
 path_to_script = path.realpath(__file__)
 path_to_repo_dir = path.dirname(path_to_script) # to find .renv
-path_to_Rlibs = path.join(path_to_repo_dir, 'Rlibs') # to install and cache the Rlibs once only, in the repo folder
+#path_to_Rlibs = path.join(path_to_repo_dir, 'renv') # to install and cache the Rlibs once only, in the repo folder
 path_to_graph_ts = path.join(path_to_repo_dir, 'graph_ts.R')
 
 # An iterator for fastq files.  Takes a open file object.  Returns a dict
@@ -742,7 +748,7 @@ def main():
     ###########################
 
 
-    cmd6 = ' '.join(['Rscript', path_to_graph_ts, out_DN, str(maxAggN), str(gdiff), str(path_to_repo_dir), str(path_to_Rlibs)])  #os.curdir
+    cmd6 = ' '.join(['Rscript', path_to_graph_ts, out_DN, str(maxAggN), str(gdiff), str(path_to_repo_dir)])  #, str(path_to_Rlibs)])  #os.curdir
 
     print('command for plotting: "' + cmd6 + '"')
     rout = subprocess.check_output(cmd6, shell=True).decode()
