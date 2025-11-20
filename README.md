@@ -9,7 +9,7 @@ For help and dependencies:
 
 ### Quickstart:
 
-*Note: if trimviz is slow, consider using -k argument to speed up analysis of large files*
+*Note: -k argument can speed up analysis of large files and remove the seqtk requirement*
 
 <br>
 
@@ -108,16 +108,17 @@ visualize the soft-clipping of reads by an aligner.
 
 #### Command-line programs:
 
-* conda
 * Rscript
-* seqtk
-* samtools
+* seqtk (if *not* using -k)
+* samtools (if input includes bam files)
 
 #### Python libraries:
 
-* pysam
+* pysam (if input includes bam files)
 
 #### R libraries:
+
+These should be automatically loaded via renv.
 
 * ggplot2
 * ape

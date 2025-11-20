@@ -3,8 +3,6 @@
 # TODO: mapping rate vs trim amount; multimapping vs trim
 # proper temp files plus cache? (currently its a kind of race condition)
 # dependency testing
-# length profile of trimmed
-# Analysis of soft-clipping from bam
 # paired-end (+ paired-end overhang -> suggested clipping)
 # test if 'raw' fastq is actually uneven lengths (pretrimmed from seq facility)
 
@@ -14,11 +12,21 @@ __author__ = 'stuartarcher'
 
 
 import os
-env_name = os.getenv("CONDA_DEFAULT_ENV")
+env_name = os.getenv("CONDA_DEFAULT_ENV")  # this will return None if conda not installed
 if not env_name == 'trimViz2025_renv':
-    warn("Conda env is not trimViz2025_renv. If dependency import fails, try running './trimviz/setup.sh' and then 'conda activate trimViz2025_renv' first.")
+    Warning("Current conda env is apparently not trimViz2025_renv. If dependency import fails, try running './trimviz/setup.sh' and then 'conda activate trimViz2025_renv' first.")
 
-import getopt, subprocess, random, re, sys, os, gzip, pysam  #tempfile, time
+import getopt, warnings, subprocess, random, re, sys, os, gzip #, pysam  #tempfile, time  ### load pysam only if needed
+
+try:
+    import pysam
+except ImportError as e:
+    warnings.warn(
+        "pysam is not installed or could not be imported; "
+        "SC mode will error out."
+    )
+    pysam = None
+
 from os import path
 
 try:
@@ -37,7 +45,7 @@ class fastq:
         self.f = f
     def __iter__(self): return self
     def __next__(self):
-        id = re.sub('\/.+$', '', next(self.f).rstrip().decode()) # remove all after forward slash
+        id = re.sub(r'/.+$', '', next(self.f).rstrip().decode()) # remove all after forward slash
         s  = next(self.f).rstrip().decode().upper() # convert to uppercase (<----- maybe change in future? Cutadapt can convert to lowercase instead of trimming, this will be missed)
         next(self.f)
         q = next(self.f).rstrip().decode()
@@ -228,6 +236,9 @@ def main():
         elif not os.path.isfile(gfasta_FN):
             print('Bam file is given but could not find corresponding genome fasta file '+ gfasta_FN + '. Exiting.')
             exit()
+        elif pysam == None:
+            print('Error: pysam not installed or not found. Cannot process bam input.')
+            exit()
     else:
         if 'indel' in coi:
             coi = [x for x in coi if x != 'indel']
@@ -354,7 +365,7 @@ def main():
     if (bam_FN != ''):
         # remove /1 and /2 from end of readnames for bam-searching, replace the terminal tab char
         readIDs1_FN2 = readIDs1_FN + '.2'
-        cmd3B = "cat %s | sed 's/[\/].*$/\t/' > %s" % (readIDs1_FN, readIDs1_FN2)
+        cmd3B = r"cat %s | sed 's/[\/].*$/\t/' > %s" % (readIDs1_FN, readIDs1_FN2)
         sub_bamFN = out_DN + '/trimVisTmpFiles/bamEntries1.sam'
         cmd4A = 'samtools view -H %s > %s' % (bam_FN,  sub_bamFN)
         cmd4B = 'samtools view %s | fgrep -f %s | awk \'NF > 8{print} 1\' >> %s' % (bam_FN, readIDs1_FN2, sub_bamFN)  # |  cut -f1-6,9
