@@ -36,7 +36,6 @@ except ImportError:
 
 path_to_script = path.realpath(__file__)
 path_to_repo_dir = path.dirname(path_to_script) # to find .renv
-#path_to_Rlibs = path.join(path_to_repo_dir, 'renv') # to install and cache the Rlibs once only, in the repo folder
 path_to_graph_ts = path.join(path_to_repo_dir, 'graph_ts.R')
 path_to_testR = path.join(path_to_repo_dir, 'test_R_dependencies.R')
 
@@ -72,7 +71,7 @@ def main():
     else:
         softClipping = True
     
-    options, remainder = getopt.getopt(sys.argv[2:], 'u:p:t:U:P:T:o:O:b:g:c:n:v:w:a:A:f:g:r:s:k:Rzedh', ['untrimmed_R1=',
+    options, remainder = getopt.getopt(sys.argv[2:], 'u:p:t:U:P:T:o:O:b:g:c:n:v:w:a:A:f:g:r:s:k:Rzedqxh', ['untrimmed_R1=',
                                                                                    'prealign_R1=',
                                                                                    'trimmed_R1=',
                                                                                    'untrimmed_R2=',
@@ -96,6 +95,8 @@ def main():
                                                                                    'gzipped',
                                                                                    'read2only',
                                                                                    'diff',
+                                                                                   'quiet',
+                                                                                   'exclude_ambig',
                                                                                    'help'])
 
     gr_FN = 'indivReadPlots.pdf'
@@ -127,7 +128,8 @@ def main():
     Uread2only = False # e   'read2only'   # <------- TODO paired-end mode
     read2only = False   # not directly user-specified: look at use of -U vs -u. If both used, then defer to read2onlyIN (not supported yet)
     gdiff = False       # d   'diff'
-    help = False        # h   'help'
+    quiet_mode = False  # q   'quiet'  dont warn about ambiguous reads
+    exclude_ambig = False
     
     for opt, arg in options:
         if opt in ('-u', '--untrimmed_R1', '-p', '--prealign_R1'):
@@ -174,7 +176,11 @@ def main():
         elif opt in ('-e', '--read2only'): # supported in future version (only applies if both -u and -U are given now)
             read2onlyIN = True
         elif opt in ('-d', '--diff'):
-            gdiff=True
+            gdiff = True
+        elif opt in ('-q', '--quiet'):
+            quiet_mode = True
+        elif opt in ('-x', '--exclude_ambig'):
+            exclude_ambig = True
         elif opt in ('-h', '--help'):
             print_help()
     # Open a file.  Use gzip based on filename, or 'gzipped' flag
@@ -362,7 +368,7 @@ def main():
     f_pre.close()
     
     both = dict()                                  # this will be used to store pre- and post- trimmed fqs
-    rid_class={'uncut':[], '5pcut':[],'3pcut':[], 'removed':[], 'generated_warning':[], 'indel':[]} # will also classify them into the 3 classes and make ID list for each class (-> rid_class)
+    rid_class={'uncut':[], '5pcut':[],'3pcut':[], 'removed':[], 'generated_warning':[], 'indel':[], 'ambiguous_cut':[]} # will also classify them into the 3 classes and make ID list for each class (-> rid_class)
         
     ####################################################################################
     # MAIN part 2.1: (optional): extract from bam & fasta; save as temp file & dict (fastaD)
@@ -404,8 +410,9 @@ def main():
     ####################################################################################
     # MAIN part 2.2: (FQ mode only): extract from post-trimmed fastq; merge into dict 'both'
     ####################################################################################  
-    
-    if not softClipping:     
+     
+    if not softClipping: 
+        removeread = list() 
         # retrieve same reads (in readIDs1_FN) from TRIMMED FQ (proc_FN) using seqtk
         if skim != -1:
             cmd5 = "zcat %s | head -n %d | gzip > %s " % (proc_FN, (target_n_pre + skim) *4, tmpPost1_FN)
@@ -437,15 +444,15 @@ def main():
         if skim == -1:
             for r in post:
                 print("WARNING: read ---- " + r + "  ---- not found in pre-trimmed data.")
-                #rid_class['generated_warning'].extend([r]) # actually can't plot this (no 'pre-trimmed' entry)!
+                rid_class['generated_warning'].extend([r]) # actually can't plot this (no 'pre-trimmed' entry)!
+                removeread.append(r)
             
             
         #########################################################
         #  Guess 5' and 3' trim sites using both seq and qual strings
         #  add as elements [4] and [5] in 'both'
         #########################################################
-    
-        removeread = list()
+         
         maxReadLen=0
         for r, rdat in both.items(): # rdat: 0-postSeq 1-postQual 2-preSeq 3-preQual
             if len(rdat[0]) > 0: # read present in processed
@@ -453,18 +460,22 @@ def main():
                     maxReadLen = max(maxReadLen, len(rdat[2]))
                     seqpos = mfind(rdat[2], rdat[0])  # ref(pre), query(post) mfind returns 0 if no 5' trim
                     qualpos = mfind(rdat[3], rdat[1])
-                    fps = [i for i in seqpos if i in qualpos]
+                    fps = [i for i in seqpos if i in qualpos] # cross-reference possible seq cut-sites with possible qual cut-sites 
                     #if len(fps)==1:  # almost certainly only 1 unique start site for the match (using both Seq and Qual) if length reasonable
                     both[r].append(fps[0] + 1)                # [ both[r][4]=start rel pre    ...so 3' trim len = (len([2])- [5]
                     both[r].append(fps[0] + 1 + len(rdat[0])) # for len=1, start, end on n,n+1 nucleotides
                     if len(fps)> 1:
-                        print("Warning - ambiguous trimming (multiple possible trim-points) encountered for read %s" % (r))
-                        print(len(fps))
-                        print(rdat)
-                        rid_class['generated_warning'].extend([r])
-                        #both.pop(r)
+                        if not quiet_mode:
+                            print("Warning - ambiguous trimming (multiple possible trim-points) encountered for read %s" % (r))
+                            print(len(fps))
+                            print(rdat)
+                        rid_class['ambiguous_cut'].extend([r])
+                        if exclude_ambig:
+                            removeread.append(r)
+                        #both.pop(r) # or.. leave them in?
                 else:
                     print("WARNING: read ", r, " does not have all associated data, or the trimmed sequence was not a substring of full sequence.")
+                    rid_class['generated_warning'].extend([r])
                     removeread.append(r)
             else:
                 both[r].extend([1,1]) # add dummy values for 5'cut and 3' cut site
@@ -629,6 +640,7 @@ def main():
     ##########################################################################
     #   MAIN   Part 4 classify reads into 5pcut, 3pcut, uncut and removed
     ##########################################################################
+
     for r, rdat in both.items():
         if len(rdat[0]) == 0:
             rid_class['removed'].extend([r])
@@ -636,7 +648,7 @@ def main():
             if rdat[4] > 1: #5' trim (1-based)
                 rid_class['5pcut'].extend([r])
             if len(rdat[2]) - len(rdat[0]) > rdat[4]-1: # if the length diff is more than what can be accounted for by 5' trim (1-based)
-                rid_class['3pcut'].extend([r])
+                rid_class['3pcut'].extend([r]) # not necessarily mutually exclusive with 5p cut
             if len(rdat[2]) == len(rdat[0]):
                 rid_class['uncut'].extend([r])
         
@@ -660,16 +672,24 @@ def main():
             toPlot = toPlot + rs
     else:
         toPlot = random.sample(list(both.keys()), nvis)
-    print("Trim-classification results from the random sample of %d reads" % target_n_pre)
+    print(" ---- Trim-classification results from the random sample of %d reads ---- " % target_n_pre)
     trimClassTbl = dict()
     for cls in rid_class.keys():
         ncls = len(rid_class[cls])
-        if balance and ncls < nvis:
-            print("There were %d reads classed as %s. (Warning: this was less than requested for plotting (-v). Increase sample size using -n)" % (ncls , cls))
-        else:
-            print("There were %d reads classed as %s." % (ncls , cls))
+        cmmnt = ''
+        if cls == 'ambiguous_cut':
+            if exclude_ambig:
+                cmmnt = '  (These are excluded in other classes or visualisation, as -x/--exclude_ambig was selected.)'
+            else:
+                cmmnt = '  (These are not excluded from being counted in 5pcut or 3pcut or from the visualisation. Use -x/--exclude_ambig flags to exclude.)'
+        elif cls != 'generated_warning':
+            if ncls == 0:
+                cmmnt = '  (Class is either absent in data, or the sample size (-n) was insufficiently large to obtain an example.)'
+            elif balance and ncls < nvis:
+                cmmnt = '  (As this was less than requested for plotting (-v), consider increasing sample size (-n) to obtain more examples.)'
+        print("There were %d reads classed as %s. %s" % (ncls , cls, cmmnt))
         trimClassTbl[cls] = ncls
-
+    print(" ---- ")
     ###  5B:  output the data file for 1-by-1 read vis ###
     
     tempfname = out_DN + '/trimVisTmpFiles/trimviz_readData.tsv'
@@ -683,7 +703,7 @@ def main():
         for r in toPlot:
             j+=1
             rdat=both[r]
-            trim_class = ','.join([cls for cls in rid_class if r in rid_class[cls]])
+            trim_class = ','.join([cls for cls in rid_class if r in rid_class[cls]]) # List all the classes that this read belongs to (if more than one, comma-separated)
             for i in range(0, len(rdat[2])):
                 line = [ str(x) for x in [   r, (i+1), rdat[2][i], ord(rdat[3][i])-34, rdat[4], rdat[5], trim_class ]  ]
                 for ad in range(0, len(madapt)):
@@ -900,6 +920,8 @@ def print_help ():
     -z/--gzipped          Assume fastq files are gzipped (default behaviour is to guess via .gz file extension)
     -e/--read2only        (Not yet implemented) Extract Read-2 alignments from the .bam file. Ignored unless both R1 and R2 files are given.
     -d/--diff             When displaying genomic alignment context from bam file, only display nucleotides that differ from the read sequence
+    -q/--quiet_mode       Do not warn about ambiguously clipped reads (they will still be counted as 'ambigious' in the summary however).
+    -x/--exclude_ambig    Exclude ambiguously clipped reads from visualisations (they will still be counted as 'ambigious' in the summary however).
     -h/--help:            Print this help page
      
     Requires:

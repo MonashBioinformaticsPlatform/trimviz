@@ -22,10 +22,6 @@ options(repos = c(CRAN = "https://cloud.r-project.org"))
 library(renv)
 
 if(MODE == 'build'){  # build from the TV repo's renv.lock
-  #if(! file.exists(paste0(TV_PATH,'/renv.lock'))){
-  #  renv::init(project=TV_PATH, bare=T) #
-  #  #file.copy(paste0(TV_PATH, '../tv_renv.lock'), paste0(TV_PATH, "/renv.lock"), overwrite = TRUE) # bad idea - just include renv folder in repo (apart from renv/library)
-  #}
   renv::restore(project = TV_PATH)
 } else if(MODE == 'build_from_scratch') { # This is the code used to make the renv.lock file originally, which is included in the git repo. 
   setwd(TV_PATH)
@@ -35,13 +31,9 @@ if(MODE == 'build'){  # build from the TV repo's renv.lock
       #install.packages(dep, lib='./Rlib_renv')
     cat('\n installing: ', dep, '\n')
     renv::install(dep)
-    #} else {
-    #  cat('\n package ', dep, ' already installed. \n')
-    #}
   }
   renv::snapshot() # project=TV_PATH) # setting project path again puts the lockfile in project_path/project_path!
   cat('\n Snapshotted renv \n')
-  #file.copy(paste0(TV_PATH, '../renv.lock'), paste0(TV_PATH, "/tv_renv.lock"), overwrite = TRUE)
 } else if (MODE == 'test'){
   renv::restore(project = TV_PATH)
   library(ggplot2)
