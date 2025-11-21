@@ -17,8 +17,11 @@ conda_lib <- file.path(Sys.getenv("CONDA_PREFIX"), "lib", "R", "library")
  
 # Set it as .libPaths so R uses packages from Conda env first
 .libPaths(c(conda_lib, .libPaths()))
-
-renv::restore(project = repo_path) # should actually point to trimviz repo (not user's project dir)
+if (!requireNamespace("renv", quietly = TRUE)) {
+  warning('R package renv not installed or not detected. If trimviz fails to find all R dependencies, please install renv, or run setup.sh and activate the trimViz2025_renv conda environment before calling trimviz.')
+} else {
+  renv::restore(project = repo_path) # should actually point to trimviz repo (not user's project dir)
+}
 #library(dplyr)
 library(ggplot2)
 library(ape)
@@ -34,7 +37,6 @@ anchorPlot <- function(x, datatype='s', clustby='s', EOI = '3p', gdiff=F){
     x$xalpha=(x$g==x$s)
     ttls2[[clustby]] = '(diff, c.f. read) '
   }
-  #gr = ggplot(x, aes_string(x = 'pos', y = ordCol, fill = datatype)) + 
   gr = ggplot(x, aes(x = pos, y = .data[[ordCol]], fill = .data[[datatype]])) +
     geom_raster(aes(alpha = as.numeric(pos == 0 | xalpha))) + # | s == 'N'))) + 
     theme_bw() + 
@@ -68,7 +70,6 @@ reads_FN = paste0(out_DN, '/trimVisTmpFiles/trimviz_readData.tsv')
 ############################
 
 df <- read.table(file = reads_FN, comment.char = '', header=TRUE)
-#df <- read.table(file = './trimVisTmpFiles/trimviz_readData.tsv', comment.char = '', header=TRUE)
 graphchunk = 5
 rnames = unique(df$read)
 maxLen =  max( df$position )

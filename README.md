@@ -7,7 +7,26 @@ For help and dependencies:
 
 <br>
 
-### Quickstart:
+## Quickstart:
+
+#### Set-up
+
+In the folder where you want to place trimviz:
+
+`git clone https://github.com/MonashBioinformaticsPlatform/trimviz`
+
+optional: If you don't want to manually install the dependencies, import the trimviz conda environment:
+
+```
+./trimviz/setup.sh
+conda activate trimViz2025_renv
+```
+
+This will also set up `renv` to manage the R dependencies.
+
+<br>
+
+#### Running:
 
 *Note: -k argument can speed up analysis of large files and remove the seqtk requirement*
 
@@ -50,7 +69,7 @@ suggesting that they originated elsewhere.
 
  <br>
 
-### Command-line arguments:
+## Command-line arguments:
 
 Trimviz takes a random sample of untrimmed reads from a fastq file,
 looks up the same reads in a trimmed fastq file and visualises the
@@ -104,7 +123,7 @@ visualize the soft-clipping of reads by an aligner.
 
 <br>
 
-### Dependencies:
+## Dependencies:
 
 #### Command-line programs:
 
@@ -129,13 +148,13 @@ Tested with R4.5.2 and Python 3.13.9 (latest)
 
 <br>
 
-### Installing dependendies:
+**Installing dependendies:**
 
 An example script demonstrating the installation of dependencies using Conda and R-renv is included: `trimviz/setup.sh`
 
 <br>
 
-### Trimviz analysis details:
+## Trimviz analysis details:
 
 **Fastq-fastq mode (FQ):**
 Trimviz takes a random sample of reads from an untrimmed fastq file, looks up the same reads in a trimmed fastq file and visualises the trimming sites with respect to surrounding base call quality values, adapter sequence, and, if a bam file is given, downstream alignment context. Bam file must be the result of aligning the **trimmed (-t/-T)** fastq file. However Trimviz will look back and extract the genomic region that **would have been covered by the entire _untrimmed_ read if it had aligned at the same place**, thus it also needs a fasta file of the genome to retrieve some extra flanking sequence. This assists in determining whether the untrimmed reads would have mapped equally well or whether too many errors would be introduced (especially with `--diff` mode).
@@ -144,7 +163,14 @@ Trimviz takes a random sample of reads from an untrimmed fastq file, looks up th
 Trimviz will visualize the soft-clipping sites of reads that occurs during alignment to a reference genome. This works similar to above except the bam file is treated like a trimmed fastq file. The bam file must be the result of direct alignment of the **(-p/-P)** fastq file, which may or may not have been trimmed prior to alignment.
 
 <br>
-Trimviz classifies reads into 'uncut', '3pcut' (ie. 3' trimmed), '5pcut' (ie. 5' trimmed), 'removed' (ie. filtered reads in FQ mode; unmapped reads in SC mode) by comparison between pre- and post- trimmed fastq files (or between a fastq file and a bam file in SC mode). Trimviz randomly samples reads from the entire fastq file, thus it has to stream though 2 or 3 large files and may take some time to complete - or you can just skim the top of the fastq files with the -k argument, as long as the read-order is the same. It can accept fastq-files that were output from any trimming tool.    
+
+Usually, for a small fraction of reads, the trimmed sequence aligns to multiple positions within the untrimmed counterpart and these reads are output as warnings.
+
+<br>
+
+## Explanation of output:
+
+Trimviz classifies reads into 4 categories: 'uncut', '3pcut' (ie. 3' trimmed), '5pcut' (ie. 5' trimmed), 'removed' (ie. filtered reads in FQ mode; unmapped reads in SC mode) by comparison between pre- and post- trimmed fastq files (or between a fastq file and a bam file in SC mode). Trimviz randomly samples reads from the entire fastq file, thus it has to stream though 2 or 3 large files and may take some time to complete - or you can just skim the top of the fastq files with the -k argument, as long as the read-order is the same. It can accept fastq-files that were output from any trimming tool.    
 <br>
 The Trimviz report written to out_dir/trimvis_report.html includes: 
 <br> 

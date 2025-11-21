@@ -38,6 +38,7 @@ path_to_script = path.realpath(__file__)
 path_to_repo_dir = path.dirname(path_to_script) # to find .renv
 #path_to_Rlibs = path.join(path_to_repo_dir, 'renv') # to install and cache the Rlibs once only, in the repo folder
 path_to_graph_ts = path.join(path_to_repo_dir, 'graph_ts.R')
+path_to_testR = path.join(path_to_repo_dir, 'test_R_dependencies.R')
 
 # An iterator for fastq files.  Takes a open file object.  Returns a dict
 class fastq:
@@ -274,11 +275,6 @@ def main():
         print("All -c arguments given were invalid. Exiting")
         print_help()
         exit()
-    try:
-        os.makedirs(out_DN)
-    except:
-        print('Error: Could not create output directory %s. Exiting.' % out_DN)
-        exit()   
         
     random.seed(rseed)
 
@@ -295,6 +291,16 @@ def main():
             print('Warning. File: ', adapt_FN, ' not found. Not using adapter file. ')  # TODO implement this
     
     
+    # test for R dependencies before making output dir:
+    cmd_testR = ' '.join(['Rscript', path_to_testR, str(path_to_repo_dir)])  #, str(path_to_Rlibs)])  #os.curdir
+    rout_test = subprocess.check_output(cmd_testR, shell=True).decode()
+
+    try:
+        os.makedirs(out_DN)
+    except:
+        print('Error: Could not create output directory %s. Exiting.' % out_DN)
+        exit()
+
     ###########################################################################################
     #  MAIN part 2:     sample from pre- processed fastq file
     ###########################################################################################     
