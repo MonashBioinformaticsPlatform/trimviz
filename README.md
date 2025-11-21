@@ -118,7 +118,19 @@ visualize the soft-clipping of reads by an aligner.
     -z/--gzipped          Assume fastq files are gzipped (default behaviour is to guess via .gz file extension)
     -e/--read2only        (Not yet implemented) Extract Read-2 alignments from the .bam file. Ignored unless both R1 and R2 files are given.
     -d/--diff             When displaying genomic alignment context from bam file, only display nucleotides that differ from the read sequence
+    -q/--quiet_mode       Do not warn about ambiguously clipped reads (they will still be counted as 'ambigious' in the summary however).
+    -x/--exclude_ambig    Exclude ambiguously clipped reads from visualisations (they will still be counted as 'ambigious' in the summary however).
     -h/--help:            Print this help page
+
+    Requires:
+    Rscript
+    seqtk (except in -k mode)
+    samtools (if using bam files as input)
+    Python-2 libraries:
+    getopt, subprocess, random, re, sys, os, gzip, pysam (if using bam files as input), and pipes (for older python3 versions)
+    R libraries:
+    ggplot2, ape, reshape2, gridExtra, renv (renv alone can manage the other libraries: it will create a custom renv library inside the trimviz directory)
+
 ```
 
 <br>
@@ -137,7 +149,7 @@ visualize the soft-clipping of reads by an aligner.
 
 #### R libraries:
 
-These should be automatically loaded via renv.
+These can be automatically loaded via **renv** if installed.
 
 * ggplot2
 * ape

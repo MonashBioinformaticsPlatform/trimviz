@@ -927,13 +927,11 @@ def print_help ():
     Requires:
     Rscript
     seqtk (except in -k mode)
-    samtools
-    zcat
-    fgrep
+    samtools (if using bam files as input)
     Python-2 libraries:
-    getopt, subprocess, random, re, sys, os, gzip, pysam, (and pipes for older python3 versions)
+    getopt, subprocess, random, re, sys, os, gzip, pysam (if using bam files as input), and pipes (for older python3 versions)
     R libraries:
-    ggplot2, ape, reshape2, gridExtra, renv (will attempt to create a custom Rlib inside the trimviz directory for these if they are not installed)
+    ggplot2, ape, reshape2, gridExtra, renv (renv alone can manage the other libraries: it will create a custom renv library inside the trimviz directory)
     ''')
 
 def makeReport(mode, out_DN, trimClassTbl, lenpre, Uorig_FN1, Uproc_FN1, Uorig_FN2, Uproc_FN2, bam_FN, gfasta_FN):     
