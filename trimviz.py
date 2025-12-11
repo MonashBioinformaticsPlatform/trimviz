@@ -983,10 +983,10 @@ def makeReport(mode, out_DN, trimClassTbl, lenpre, Uorig_FN1, Uproc_FN1, Uorig_F
     htmlblock += '<br></div><br><hr/>'
     report.append (htmlblock)
 
-    htmlTbl = '<h3> Summary of trimming frequency </h3> \n <table class="mytable-marg" ><tr><th><b>Trim class</b></th><th><b>Number of reads</b></th></tr>\n'
+    htmlTbl = '<h3> Summary of trimming frequency </h3> \n <table class="mytable-marg" ><tr><th><b>Trim class</b></th><th><b>Number of reads</b></th><th><b> % </b></th></tr>\n'
     for cls, ncls in trimClassTbl.items():
-        htmlTbl += '<tr><th> %s </th><th> %d </th>\n' % (cls , ncls)
-    htmlTbl += '<tr><th><b>Tot unique</b></th><th><b>%d</b></th></tr>\n' % (lenpre)     
+        htmlTbl += '<tr><th> %s </th><th> %d </th><th> %.1f </th>\n' % (cls , ncls, 100*ncls/lenpre)
+    htmlTbl += '<tr><th><b>Tot unique</b></th><th><b>%d</b></th><th></th></tr>\n' % (lenpre)     
     htmlTbl += '</table><br><hr/>'
     report.append (htmlTbl)
     
